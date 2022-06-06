@@ -23,11 +23,12 @@ pub fn get_shaders(context: &WebGl2RenderingContext) -> Result<WebGlProgram, Str
 
         out vec3 fragPosition;
         out vec3 fragNormal;
+        out vec2 fragSamplePosition;
         out vec4 fragColor;
 
         vec2 pointToUv(vec3 pointOnSphere) {
-            float u = 0.5 + atan(pointOnSphere.x, pointOnSphere.z) / 2.0 / M_PI;
-            float v = 0.5 + asin(pointOnSphere.y) / M_PI;
+            float u = clamp(0.5 + atan(pointOnSphere.x, pointOnSphere.z) / 2.0 / M_PI, 0.0, 1.0);
+            float v = clamp(0.5 + asin(pointOnSphere.y) / M_PI, 0.0, 1.0);
             return vec2(u, v);
         }
 
@@ -40,7 +41,7 @@ pub fn get_shaders(context: &WebGl2RenderingContext) -> Result<WebGlProgram, Str
         // }
 
         void main() {
-            vec2 texturePoint = pointToUv(position);
+            vec2 texturePoint = pointToUv(normalize(position));
             float terrainValue = texture(s_textureMap, texturePoint).r;
             float positionScale = 1.0 + (terrainValue * u_terrainScale) - u_terrainScale / 2.0;
 
@@ -51,13 +52,8 @@ pub fn get_shaders(context: &WebGl2RenderingContext) -> Result<WebGlProgram, Str
             fragPosition = vec3(u_model * vec4(scaled_position, 1.0));
             fragNormal = mat3(transpose(inverse(u_model))) * normal; // TODO: Inverse is very slow
 
-            if (terrainValue != 0.0) {
-                float reproportioned = min(1.0, max(0.0, terrainValue * 1.3 + 0.1));
-                vec4 mappedColor = mix(vec4(0.0, 0.0, 0.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), reproportioned);
-                fragColor = mix(color, mappedColor, 0.9);
-            } else {
-                fragColor = mix(color, vec4(0.2, 0.2, 0.7, 1.0), 0.9);
-            }
+            fragSamplePosition = texturePoint;
+            fragColor = color;
         }
         "##,
     )?;
@@ -71,7 +67,10 @@ pub fn get_shaders(context: &WebGl2RenderingContext) -> Result<WebGlProgram, Str
 
         in vec3 fragPosition;
         in vec3 fragNormal;
+        in vec2 fragSamplePosition;
         in vec4 fragColor;
+
+        uniform sampler2D s_textureMap;
 
         out vec4 outColor;
 
@@ -103,6 +102,18 @@ pub fn get_shaders(context: &WebGl2RenderingContext) -> Result<WebGlProgram, Str
             return u_specularStrength * spec * u_lightColor;
         }
 
+        vec4 getTerrainColor() {
+            float terrainValue = texture(s_textureMap, fragSamplePosition).r;
+
+            if (terrainValue != 0.0) {
+                float reproportioned = min(1.0, max(0.0, terrainValue * 1.3 + 0.1));
+                vec4 mappedColor = mix(vec4(0.0, 0.0, 0.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), reproportioned);
+                return mix(fragColor, mappedColor, 0.9);
+            } else {
+                return mix(fragColor, vec4(0.2, 0.2, 0.7, 1.0), 0.9);
+            }
+        }
+
         void main() {
             vec3 lightDir = normalize(u_lightPosition - fragPosition);
             vec3 norm = normalize(fragNormal);
@@ -110,7 +121,10 @@ pub fn get_shaders(context: &WebGl2RenderingContext) -> Result<WebGlProgram, Str
             vec3 totalLightColor = getAmbientLight()
                 + getDiffuseLight(lightDir, norm)
                 + getSpecularLight(lightDir, norm);
-            outColor = fragColor * vec4(totalLightColor, 1.0);
+
+            vec4 terrainColor = getTerrainColor();
+
+            outColor = terrainColor * vec4(totalLightColor, 1.0);
         }
         "##,
     )?;

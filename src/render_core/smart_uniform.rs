@@ -17,11 +17,11 @@ pub struct SmartUniform<T> {
 }
 
 impl<T: PartialEq + Clone + UniformValue> SmartUniform<T> {
-    pub fn new(name: String, context: WebGl2RenderingContext, program: WebGlProgram) -> Self {
-        let location = context.get_uniform_location(&program, name.as_str()).unwrap();
+    pub fn new(name: &str, context: WebGl2RenderingContext, program: WebGlProgram) -> Self {
+        let location = context.get_uniform_location(&program, name).unwrap();
         Self {
             context,
-            name,
+            name: name.to_owned(),
             location,
             last_value: None,
         }

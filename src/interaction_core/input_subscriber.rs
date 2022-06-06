@@ -9,7 +9,7 @@ pub use super::input_batch::{InputState, KeyState, MouseMovement};
 pub use super::user_inputs::{MouseButton, MouseButtonState, Scroll, SwitchState};
 
 /// Used to remove a callback after it's unneeded.
-pub type Handle = usize;
+pub type Handle = u32;
 
 /// Function to be executed when a mouse movement occurs.
 pub type MouseMoveCallback = Box<dyn Fn(MouseMovement, InputState)>;

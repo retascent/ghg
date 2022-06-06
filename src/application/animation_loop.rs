@@ -7,9 +7,10 @@ use crate::application::control::Controller;
 use crate::application::lighting::LightParameters;
 use crate::application::planet::load_planet_terrain;
 use crate::application::sphere::generate_sphere;
+use crate::application::vertex::BasicMesh;
 use crate::render_core::animation::{AnimationFn, wrap_animation_body};
 use crate::render_core::camera::Camera;
-use crate::render_core::mesh::{add_static_mesh, draw_buffers, DrawBuffers, DrawMode};
+use crate::render_core::mesh::{add_mesh, clear_frame, draw_meshes, DrawBuffers, DrawMode, MeshMode};
 use crate::render_core::smart_uniform::SmartUniform;
 use crate::Viewport;
 
@@ -18,22 +19,18 @@ use crate::utils::prelude::*;
 pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingContext, program: WebGlProgram)
         -> Result<AnimationFn, JsValue> {
     let mut lighting = LightParameters::new(&context, &program);
-    lighting.ambient_strength.smart_write(0.3);
-    lighting.specular_strength.smart_write(0.5);
-    lighting.ambient_color.smart_write(nglm::vec3(0.8, 0.8, 1.0));
-    lighting.light_color.smart_write(nglm::vec3(1.0, 1.0, 1.0));
 
-    let mut texture_map = SmartUniform::<i32>::new("s_textureMap".to_owned(), context.clone(), program.clone());
+    let mut texture_map = SmartUniform::<i32>::new("s_textureMap", context.clone(), program.clone());
     texture_map.smart_write(0);
 
-    let mut terrain_scale = SmartUniform::<f32>::new("u_terrainScale".to_owned(), context.clone(), program.clone());
+    let mut terrain_scale = SmartUniform::<f32>::new("u_terrainScale", context.clone(), program.clone());
     terrain_scale.smart_write(0.1);
 
-    let mut model = SmartUniform::<nglm::Mat4>::new("u_model".to_owned(), context.clone(), program.clone());
-    let mut view = SmartUniform::<nglm::Mat4>::new("u_view".to_owned(), context.clone(), program.clone());
-    let mut projection = SmartUniform::<nglm::Mat4>::new("u_projection".to_owned(), context.clone(), program.clone());
+    let mut model = SmartUniform::<nglm::Mat4>::new("u_model", context.clone(), program.clone());
+    let mut view = SmartUniform::<nglm::Mat4>::new("u_view", context.clone(), program.clone());
+    let mut projection = SmartUniform::<nglm::Mat4>::new("u_projection", context.clone(), program.clone());
 
-    let camera = Rc::new(RefCell::new(Camera::new(&nglm::vec3(1.0, 2.0, 3.0),
+    let camera = Rc::new(RefCell::new(Camera::new(&nglm::vec3(0.0, 0.0, 3.0), // Sigh, backwards y...
                                                   &nglm::vec3(0.0, 0.0, 0.0))));
 
     let mut controller = Controller::new(canvas, &camera, terrain_scale.clone());
@@ -43,10 +40,10 @@ pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingCon
 
     let buffers: Vec<DrawBuffers> = sphere_meshes.iter()
         .map(|m| {
-            add_static_mesh(&context, &program, m).unwrap()
-        })
-        .collect();
+            add_mesh(&context, &program, m, MeshMode::Static).unwrap()
+        }).collect();
 
+    let meshes_and_buffers: Vec<(BasicMesh, DrawBuffers)> = sphere_meshes.into_iter().zip(buffers.into_iter()).collect();
 
 
     // TODO: Don't run frames all the time, just run when there's input. That's what Google Maps does.
@@ -54,8 +51,17 @@ pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingCon
     // that abstraction behind two interfaces, I think.
 
 
+    // let mut frustum_test_camera = Camera::new(&nglm::vec3(1.1, 0.0, 0.0),
+    //                                       &nglm::vec3(0.0, 0.0, 0.0));
+
 
     Ok(wrap_animation_body(move |viewport: &Viewport, _delta_time: Duration| {
+        // {
+        //     frustum_test_camera.orbit_around_target(&nglm::zero(),
+        //                                             &nglm::vec2(_delta_time.as_millis() as f32, 0.0),
+        //                                             0.05);
+        // }
+
         controller.frame();
 
         let camera_position = camera.deref().borrow().position();
@@ -71,6 +77,7 @@ pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingCon
         view.smart_write(mvp.view.clone());
         projection.smart_write(mvp.projection.clone());
 
-        draw_buffers(viewport.context(), &buffers, DrawMode::Surface);
+        clear_frame(viewport.context());
+        draw_meshes(viewport.context(), camera.deref().borrow().deref(), &meshes_and_buffers, DrawMode::Surface);
     }))
 }

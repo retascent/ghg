@@ -45,7 +45,7 @@ impl Controller {
                             "Digit4" => { terrain_scale.clone().smart_write(0.7 * scale_max) },
                             "Digit5" => { terrain_scale.clone().smart_write(0.9 * scale_max) },
                             "Digit6" => { terrain_scale.clone().smart_write(1.5 * scale_max) },
-                            other => {console_log!("{:?}", other)},
+                            other => {ghg_log!("{:?}", other)},
                         }
                     }
                     _ => {}
@@ -71,13 +71,13 @@ impl Controller {
 
                 let new_position = direction_to_camera * capped_new_distance;
 
-                console_log!("last={:?} new={:?}, direction={:?} dist={}", last_position, new_position, direction_to_camera, capped_new_distance);
+                ghg_log!("last={:?} new={:?}, direction={:?} dist={}", last_position, new_position, direction_to_camera, capped_new_distance);
                 borrowed_cam.set_position(new_position);
             }
         }));
 
         input_subscriber.subscribe_on_mouse_button_event(Box::new(|button_states: Vec<MouseButtonState>, _current_state: InputState| {
-            console_log!("Mouse button changes: {:?}", button_states);
+            ghg_log!("Mouse button changes: {:?}", button_states);
         }));
 
         Self {

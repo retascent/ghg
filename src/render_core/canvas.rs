@@ -27,7 +27,7 @@ pub fn update_canvas_size(canvas: &HtmlCanvasElement) -> (u32, u32) {
         canvas.height() != display_height;
 
     if need_resize {
-        console_log!("Resizing canvas: {} x {} -> {} x {}",
+        ghg_log!("Resizing canvas: {} x {} -> {} x {}",
             canvas.width(), canvas.height(), display_width, display_height);
 
         canvas.set_width(display_width);

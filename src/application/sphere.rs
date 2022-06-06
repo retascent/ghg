@@ -5,6 +5,12 @@ use crate::utils::prelude::*;
 
 // Thanks, Sebastian Lague. https://www.youtube.com/watch?v=sLqXFF8mlEU
 pub fn generate_sphere(subdivisions: u32, points_per_subdivision: u32) -> Vec<BasicMesh> {
+    generate_sphere_with_position(subdivisions, points_per_subdivision, nglm::zero())
+}
+
+pub fn generate_sphere_with_position(subdivisions: u32,
+                                     points_per_subdivision: u32,
+                                     center: nglm::Vec3) -> Vec<BasicMesh> {
     let face_normals = vec![
         nglm::Vec3::ith(1,  1.0), // up
         nglm::Vec3::ith(1, -1.0), // down
@@ -15,12 +21,15 @@ pub fn generate_sphere(subdivisions: u32, points_per_subdivision: u32) -> Vec<Ba
     ];
 
     face_normals.iter()
-        .map(|n| generate_face(n, subdivisions, points_per_subdivision))
+        .map(|n| generate_face(n, subdivisions, points_per_subdivision, center.clone()))
         .flatten()
         .collect()
 }
 
-fn generate_face(normal: &nglm::Vec3, subdivisions: u32, points_per_subdivision: u32) -> Vec<BasicMesh> {
+fn generate_face(normal: &nglm::Vec3,
+                 subdivisions: u32,
+                 points_per_subdivision: u32,
+                 sphere_center: nglm::Vec3) -> Vec<BasicMesh> {
     let mut meshes = Vec::new();
 
     let subdivision_size = 1.0 / (subdivisions as f32);
@@ -34,14 +43,19 @@ fn generate_face(normal: &nglm::Vec3, subdivisions: u32, points_per_subdivision:
             meshes.push(generate_subface(normal,
                                          points_per_subdivision,
                                          subdivision_start,
-                                         subdivision_size));
+                                         subdivision_size,
+                                         sphere_center.clone()));
         }
     }
 
     meshes
 }
 
-fn generate_subface(normal: &nglm::Vec3, points_per_side: u32, subdivision_start: nglm::Vec2, subdivision_side_length: f32) -> BasicMesh {
+fn generate_subface(normal: &nglm::Vec3,
+                    points_per_side: u32,
+                    subdivision_start: nglm::Vec2,
+                    subdivision_side_length: f32,
+                    sphere_center: nglm::Vec3) -> BasicMesh {
     let face_color = determine_face_color(normal);
 
     let axis_a = nglm::vec3(normal.y, normal.z, normal.x);
@@ -58,7 +72,7 @@ fn generate_subface(normal: &nglm::Vec3, points_per_side: u32, subdivision_start
 
             let point: nglm::Vec3 = (normal + axis_a * (2.0 * t.x - 1.0) + axis_b * (2.0 * t.y - 1.0)).into();
 
-            let sphere_point = point_on_cube_to_point_on_sphere(point);
+            let sphere_point = point_on_cube_to_point_on_sphere(point) + sphere_center;
             let normal: nglm::Vec3 = sphere_point.normalize();
 
             mesh.push_vertex(Vertex::from_vecs(sphere_point, normal, face_color.clone()));

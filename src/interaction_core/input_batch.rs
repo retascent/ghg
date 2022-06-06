@@ -216,12 +216,12 @@ impl IncorporateState for InputState {
                 new_state.unhandled_changes.scroll_changes = Some(scroll);
             }
             // UserInput::FocusChange(is_focused) => {
-            //     console_log!("Focus changed: is_focused = {}", is_focused);
+            //     ghg_log!("Focus changed: is_focused = {}", is_focused);
             //     new_state.mouse_position = None;
             // }
             #[allow(unreachable_patterns)]
             unhandled => {
-                console_log!("Unhandled input: {:?}", unhandled);
+                ghg_log!("Unhandled input: {:?}", unhandled);
             }
         }
 
@@ -319,6 +319,6 @@ fn make_key_handler(current_state: Rc<RefCell<InputState>>, switch_state: Switch
 // For debug only
 impl Drop for InputBatcher {
     fn drop(&mut self) {
-        console_log!("Uh oh! InputHandler was dropped!");
+        ghg_log!("Uh oh! InputHandler was dropped!");
     }
 }

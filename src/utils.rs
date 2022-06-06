@@ -29,6 +29,9 @@ pub mod prelude {
         // Multiple arguments too!
         #[wasm_bindgen(js_namespace = console, js_name = log)]
         pub fn log_many(a: &str, b: &str);
+
+        #[wasm_bindgen(js_namespace = console)]
+        pub fn error(s: &str);
     }
 }
 
@@ -47,15 +50,22 @@ pub fn read_img(ptr: *mut u8, len: usize) {
     let img = unsafe { Vec::from_raw_parts(ptr, len, len) };
 
     if let Err(e) = image::load_from_memory(&img) {
-        console_log!("{}", &e.to_string());
+        ghg_log!("{}", &e.to_string());
     }
 }
 
-macro_rules! console_log {
+macro_rules! ghg_log {
     // Note that this is using the `log` function imported above during
     // `bare_bones`
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
 
+macro_rules! ghg_error {
+    ($($t:tt)*) => (error(&format_args!($($t)*).to_string()))
+}
+
 #[allow(unused_imports)]
-pub(crate) use console_log;
+pub(crate) use ghg_log;
+
+#[allow(unused_imports)]
+pub(crate) use ghg_error;
