@@ -22,14 +22,11 @@ pub fn start() -> Result<(), JsValue> {
     canvas.set_attribute("tabindex", "0")?;
     canvas.focus()?;
 
-    let program = application::shaders::get_shaders(&context)?;
-    context.use_program(Some(&program));
-
     context.enable(WebGl2RenderingContext::DEPTH_TEST);
     context.depth_func(WebGl2RenderingContext::LESS);
 
     let viewport = Viewport::new(canvas.clone(), context.clone());
-    let animation_body = application::animation_loop::get_animation_loop(canvas, context, program)?;
+    let animation_body = application::animation_loop::get_animation_loop(canvas, context)?;
     run_animation_loop(viewport, animation_body); // Never returns
 
     Ok(())
