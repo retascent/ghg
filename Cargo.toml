@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["retascent <retascent@gmail.com>"]
 edition = "2021"
 
+[[bin]]
+name = "texture_splitter"
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -15,8 +18,9 @@ js-sys = "0.3.57"
 wasm-bindgen = "0.2.80"
 nalgebra-glm = "0.17.0"
 memoffset = "0.6.5"
-image-base64-wasm = "0.5.0"
+image-base64-wasm = "0.6.0"
 image = "0.24.2"
+paste = "1.0.7"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires

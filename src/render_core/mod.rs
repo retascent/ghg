@@ -6,4 +6,5 @@ pub mod mesh;
 pub mod viewport;
 pub mod camera;
 pub mod animation;
-pub mod smart_uniform;
+pub mod uniform;
+pub mod image;

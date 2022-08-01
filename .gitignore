@@ -1,7 +1,13 @@
 /target
 **/*.rs.bk
 Cargo.lock
-bin/
+*.exe
 pkg/
 wasm-pack.log
 .idea/
+
+scripts/data
+
+www/images/earth_color/**/*.png
+www/images/earth_height/**/*.png
+

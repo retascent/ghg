@@ -7,7 +7,7 @@ use crate::interaction_core::input_subscriber::{
     MouseButtonState, MouseMovement, Scroll, SwitchState
 };
 use crate::render_core::camera::Camera;
-use crate::render_core::smart_uniform::SmartUniform;
+use crate::render_core::uniform::Uniform;
 
 use crate::utils::prelude::*;
 
@@ -16,7 +16,7 @@ pub struct Controller {
 }
 
 impl Controller {
-    pub fn new(canvas: HtmlCanvasElement, camera: &Rc<RefCell<Camera>>, terrain_scale: SmartUniform<f32>) -> Self {
+    pub fn new(canvas: HtmlCanvasElement, camera: &Rc<RefCell<Camera>>, terrain_scale: Uniform<f32>) -> Self {
         let mut input_subscriber = FrameInputSubscriber::new(canvas);
 
         let mouse_move_camera = camera.clone();
@@ -39,12 +39,12 @@ impl Controller {
                 match k {
                     KeyState { key, state: SwitchState::Pressed } => {
                         match key.as_str() {
-                            "Digit1" => { terrain_scale.clone().smart_write(0.1 * scale_max) },
-                            "Digit2" => { terrain_scale.clone().smart_write(0.3 * scale_max) },
-                            "Digit3" => { terrain_scale.clone().smart_write(0.5 * scale_max) },
-                            "Digit4" => { terrain_scale.clone().smart_write(0.7 * scale_max) },
-                            "Digit5" => { terrain_scale.clone().smart_write(0.9 * scale_max) },
-                            "Digit6" => { terrain_scale.clone().smart_write(1.5 * scale_max) },
+                            "Digit1" => { terrain_scale.write_unchecked(0.1 * scale_max) },
+                            "Digit2" => { terrain_scale.write_unchecked(0.3 * scale_max) },
+                            "Digit3" => { terrain_scale.write_unchecked(0.5 * scale_max) },
+                            "Digit4" => { terrain_scale.write_unchecked(0.7 * scale_max) },
+                            "Digit5" => { terrain_scale.write_unchecked(0.9 * scale_max) },
+                            "Digit6" => { terrain_scale.write_unchecked(1.5 * scale_max) },
                             other => {ghg_log!("{:?}", other)},
                         }
                     }

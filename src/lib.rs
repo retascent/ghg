@@ -11,9 +11,11 @@ mod interaction_core;
 mod application;
 use crate::render_core::animation::run_animation_loop;
 use crate::render_core::viewport::Viewport;
+use crate::utils::set_panic_hook;
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
+    set_panic_hook();
     let (canvas, context) = render_core::canvas::get_webgl2_canvas().ok_or("Failed to create WebGL2 context")?;
 
     // Workaround: https://stackoverflow.com/a/18934718/1403459
