@@ -2,12 +2,14 @@
 **/*.rs.bk
 Cargo.lock
 *.exe
-pkg/
 wasm-pack.log
 .idea/
 
 scripts/data
 
+## DEPLOY_TAG
+# Everything below here is removed from the gitignore when deploying. Hacky, but effective
+pkg/
 www/images/earth_color/**/*.png
 www/images/earth_height/**/*.png
 

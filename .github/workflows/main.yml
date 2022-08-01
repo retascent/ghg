@@ -1,4 +1,4 @@
-name: Rust
+name: build-and-deploy
 
 on:
   push:
@@ -10,20 +10,43 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+
   build-and-deploy:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
-    - uses: jetli/wasm-pack-action@v0.3.0
-      with:
-        version: 'latest'
-    - name: Build
-      run: wasm-pack build --target web
-    - name: Add Artifacts
-      run: git add -f pkg/ && git commit -m "Add build artifacts"
-    - name: Deploy 🚀
-      uses: JamesIves/github-pages-deploy-action@v4
-      with:
-        folder: .
+      - uses: actions/checkout@v3
+
+      - uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: 'latest'
+      - name: Build WASM
+        run: wasm-pack build --target web
+
+      - name: Prepare Stage
+        run: |
+          git config user.name "github_actions[bot]"
+          git config user.email "github_actions[bot]@users.noreply.github.com"
+          git push --delete origin gh-pages-stage &>/dev/null
+          git switch -c gh-pages-stage
+
+      - name: Fix .gitignore
+        run: |
+          echo "Replacing .gitignore"
+          sed -i -n '/DEPLOY_TAG/q;p' .gitignore
+          echo "Success"
+
+      - name: Stage Artifacts
+        run: |
+          git status
+          git add .
+          git commit -m ":robot: Add build artifacts"
+          git push -u origin gh-pages-stage
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: .
+          clean: false
+          branch: "gh-pages-deploy"
+          git-config-name: "github_actions[bot]"
+          git-config-email: "github_actions[bot]@users.noreply.github.com"
