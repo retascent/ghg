@@ -1,5 +1,5 @@
-use std::cell::RefCell;
-use std::ops::{Deref};
+use std::cell::{RefCell, RefMut};
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::time::Duration;
 use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
@@ -56,12 +56,26 @@ pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingCon
     let mut view = uniform::new_smart_mat4("u_view", &shader_context);
     let mut projection = uniform::new_smart_mat4("u_projection", &shader_context);
 
+    let mut initial_spin = 3.0f32;
+    let mut spinner = move |delta_time: Duration, mut camera: RefMut<Camera>| {
+        if initial_spin > 0.0 {
+            let mut cam = camera.deref_mut();
+            let spin_amount = initial_spin * 0.5f32;
+            cam.deref_mut().orbit_around_target(&nglm::zero(),
+                                                &nglm::vec2(-spin_amount, spin_amount.min(0.2)),
+                                                0.5);
+            initial_spin -= delta_time.as_secs_f32();
+        }
+    };
+
     Ok(wrap_animation_body(move |viewport: &Viewport, _delta_time: Duration| {
         if DEBUG_FRUSTUM {
             frustum_test_camera.orbit_around_target(&nglm::zero(),
                                                     &nglm::vec2(_delta_time.as_millis() as f32, 0.0),
                                                     0.05);
         }
+
+        spinner(_delta_time, camera.deref().borrow_mut());
 
         controller.frame();
 

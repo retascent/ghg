@@ -84,14 +84,13 @@ impl Camera {
         position4.w = 1.0;
 
         // Y
-        let axis = self.forward().cross(&nglm::Vec3::y());
-        let vertical_rotation = nglm::rotate(&nglm::identity(), sized_movement.y, &axis);
-
+        let axis = self.right();
+        let clamped_angle = clamp_vertically(&self.position(), sized_movement.y);
+        let vertical_rotation = nglm::rotate(&nglm::identity(), clamped_angle, &axis);
         self.set_position(nglm::vec4_to_vec3(&(flat_rotation * vertical_rotation * position4)));
 
         // Look again
         self.set_target(target.clone());
-
     }
 
     pub fn forward(&self) -> nglm::Vec3 {
@@ -119,7 +118,7 @@ impl Camera {
     }
 }
 
-/// Avoids over-rotation
+/// Avoids over-rotation in first-person camera
 fn clamp_pitch_to_up_down(pitch: f32) -> f32 {
     const PITCH_STOP: f32 = 1.0e-6;
 
@@ -129,4 +128,22 @@ fn clamp_pitch_to_up_down(pitch: f32) -> f32 {
         return -nglm::half_pi::<f32>() + PITCH_STOP;
     }
     pitch
+}
+
+/// Avoids over-rotation in third-person orbiting camera
+/// NOTE: Assumes the origin is (0, 0, 0)
+/// It's not perfect, but it's better than it was...
+fn clamp_vertically(position: &nglm::Vec3, vertical_angle_delta: f32) -> f32 {
+    const ANGLE_STOP: f32 = 1.0e-3;
+    let current_angle = position.normalize().dot(&nglm::Vec3::y()).acos();
+
+    let upper_stop = nglm::pi::<f32>() - ANGLE_STOP;
+    let lower_stop = ANGLE_STOP;
+
+    if current_angle + vertical_angle_delta > upper_stop {
+        return upper_stop - current_angle;
+    } else if current_angle + vertical_angle_delta < lower_stop {
+        return lower_stop - current_angle;
+    }
+    vertical_angle_delta
 }
