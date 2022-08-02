@@ -1,4 +1,4 @@
-import init from "../pkg/ghg.js"
+import init from "./wasm/ghg.js"
 
 init().then(wasm => {
     window.WASM = wasm;

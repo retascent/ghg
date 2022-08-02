@@ -1,17 +1,18 @@
-name: build-and-deploy
+name: build-wasm
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:
+
+#  push:
+#    branches: [ "main" ]
+#  pull_request:
+#    branches: [ "main" ]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -19,8 +20,9 @@ jobs:
       - uses: jetli/wasm-pack-action@v0.3.0
         with:
           version: 'latest'
+
       - name: Build WASM
-        run: wasm-pack build --target web
+        run: wasm-pack build --target web --out-dir www/wasm
 
       - name: Prepare Stage
         run: |
@@ -33,6 +35,7 @@ jobs:
         run: |
           echo "Replacing .gitignore"
           sed -i -n '/DEPLOY_TAG/q;p' .gitignore
+          rm www/wasm/.gitignore
           echo "Success"
 
       - name: Stage Artifacts
@@ -41,12 +44,3 @@ jobs:
           git add .
           git commit -m ":robot: Add build artifacts"
           git push -u origin gh-pages-stage
-
-      - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: .
-          clean: false
-          branch: "gh-pages-deploy"
-          git-config-name: "github_actions[bot]"
-          git-config-email: "github_actions[bot]@users.noreply.github.com"
