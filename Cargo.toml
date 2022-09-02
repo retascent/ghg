@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["retascent <retascent@gmail.com>"]
 edition = "2021"
 repository = "https://github.com/retascent/ghg"
+license-file = "LICENSE_MIT"
 description = """GHG is an online data visualization tool for better connecting people with the reality of climate
 change data. This project uses Rust WASM and WebGL to provide the best performance and accessibility possible."""
 
