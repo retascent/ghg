@@ -2,8 +2,8 @@ use std::cell::{RefCell, RefMut};
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::time::Duration;
-use wasm_bindgen::JsCast;
-use web_sys::{HtmlCanvasElement, Response, WebGl2RenderingContext};
+use wasm_bindgen_futures::spawn_local;
+use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
 use crate::application::control::Controller;
 use crate::application::lighting::LightParameters;
 use crate::application::planet::{load_planet_color, load_planet_terrain};
@@ -16,7 +16,7 @@ use crate::render_core::camera::Camera;
 use crate::render_core::mesh::{add_mesh, clear_frame, draw_meshes, DrawBuffers, DrawMode, MeshMode};
 use crate::render_core::uniform;
 use crate::render_core::uniform::ShaderContext;
-use crate::{start, Viewport};
+use crate::Viewport;
 
 use crate::utils::prelude::*;
 
@@ -70,20 +70,20 @@ pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingCon
         }
     };
 
-    let mut started_temp_download = false;
-    let mut temp_data = None;
+    spawn_local(async move {
+        let data = fetch_blob("images/earth_temp/2021-1980.01.png").await.expect("Failed to fetch!");
+        ghg_log!("Received asynchronously: {:?}", data);
+    });
+
+    ghg_log!("Pre-loop");
+    // let mut started_temp_download = false;
+    // let mut temp_data = None;
 
     Ok(wrap_animation_body(move |viewport: &Viewport, _delta_time: Duration| {
         if DEBUG_FRUSTUM {
             frustum_test_camera.orbit_around_target(&nglm::zero(),
                                                     &nglm::vec2(_delta_time.as_millis() as f32, 0.0),
                                                     0.05);
-        }
-
-        if !started_temp_download {
-            tokio::spawn(async move {
-                temp_data = Some(fetch_blob("/images/earth_temp/2021-1980.01.png").await?);
-            });
         }
 
         spinner(_delta_time, camera.deref().borrow_mut());
