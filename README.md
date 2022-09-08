@@ -1,6 +1,6 @@
 # Heavily under development
 
-# Building
+# Building GHG
 
 - Install [`wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/). More information available [here](https://github.com/rustwasm/wasm-pack).
 - Run `wasm-pack` (or create a run configuration) with this command: `--target web --out-dir www/wasm`
@@ -11,3 +11,15 @@ Then just open `www/index.html` in your favorite (supported) browser and you sho
 
 If additional steps are required, or if anything doesn't work as expected, please open an [issue](https://github.com/retascent/ghg/issues/new/choose) or a [PR](https://github.com/retascent/ghg/compare).
 You can also email me at [`retascent@gmail.com`](mailto:retascent@gmail.com).
+
+# Binary Projects
+
+A few additional projects exist in `/src/bin/`. Below is some information about them:
+
+## `texture_splitter`
+
+
+
+## `air_temperature`
+
+

@@ -9,6 +9,13 @@ description = """GHG is an online data visualization tool for better connecting 
 change data. This project uses Rust WASM and WebGL to provide the best performance and accessibility possible."""
 
 [[bin]]
+name = "air_temperature"
+required-features = [
+    "manual_png",
+    "read_netcdf",
+]
+
+[[bin]]
 name = "texture_splitter"
 
 [lib]
@@ -16,15 +23,21 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["console_error_panic_hook"]
+read_netcdf = ["hdf5-sys", "netcdf-src", "netcdf"] # Requires HDF5 to be installed, or build with `--features hdf5-sys/static,netcdf-src/static`
+manual_png = ["png"]
 
 [dependencies]
-js-sys = "0.3.57"
-wasm-bindgen = "0.2.80"
-nalgebra-glm = "0.17.0"
-memoffset = "0.6.5"
-image-base64-wasm = "0.6.0"
 image = "0.24.2"
+image-base64-wasm = "0.6.0"
+itertools = "0.10.3"
+js-sys = "0.3.57"
+memoffset = "0.6.5"
+nalgebra-glm = "0.17.0"
 paste = "1.0.7"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = {version = "1.21.0", features = ["full"] }
+wasm-bindgen = "0.2.80"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
@@ -39,12 +52,19 @@ console_error_panic_hook = { version = "0.1.6", optional = true }
 # Unfortunately, `wee_alloc` requires nightly Rust when targeting wasm for now.
 wee_alloc = { version = "0.4.5", optional = true }
 
+# Used by some data loader tools
+hdf5-sys = { version = "0.8.1", optional = true }
+netcdf-src = { version = "0.2.0", optional = true }
+netcdf = { version = "0.7.0", optional = true }
+png = { version = "0.17.5", optional = true }
+
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
 
 [dependencies.web-sys]
 version = "0.3.4"
 features = [
+    'Blob',
     'Crypto',
     'Document',
     'Element',
@@ -53,6 +73,8 @@ features = [
     'KeyboardEvent',
     'MouseEvent',
     'Performance',
+    'Response',
+    'Request',
     'WebGlBuffer',
     'WebGlVertexArrayObject',
     'WebGl2RenderingContext',

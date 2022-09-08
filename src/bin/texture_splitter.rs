@@ -1,12 +1,48 @@
+#![feature(associated_type_defaults)]
+
 extern crate core;
 
 use std::fs;
+use std::ops::Deref;
 use std::path::Path;
-use image::{ColorType, DynamicImage, EncodableLayout, GenericImageView, GrayImage, ImageBuffer, Pixel};
+use image::{ColorType, DynamicImage, EncodableLayout, GenericImageView, GrayImage, ImageBuffer, Luma, Pixel, Rgb};
 use image::imageops::{FilterType, resize};
 use image::io::Reader;
 
-const COLOR_TYPE: ColorType = ColorType::Rgb8;
+// TODO: Consolidate with render_core::image::LoadableImageType? At least some shared logic
+trait ColorMapping: Pixel {
+    fn color_type() -> ColorType;
+    fn dynamic_to_specific(d: DynamicImage) -> ImageBuffer<Self, Vec<Self::Subpixel>>;
+    fn force_bytes(b: &ImageBuffer<Self, Vec<Self::Subpixel>>) -> &[u8]; // TODO: Hack
+}
+
+impl ColorMapping for Rgb<u8> {
+    fn color_type() -> ColorType {
+        ColorType::Rgb8
+    }
+
+    fn dynamic_to_specific(d: DynamicImage) -> ImageBuffer<Self, Vec<Self::Subpixel>> {
+        d.to_rgb8()
+    }
+
+    fn force_bytes(b: &ImageBuffer<Self, Vec<Self::Subpixel>>) -> &[u8] {
+        b.as_bytes()
+    }
+}
+
+impl ColorMapping for Luma<u8> {
+    fn color_type() -> ColorType {
+        ColorType::L8
+    }
+
+    fn dynamic_to_specific(d: DynamicImage) -> ImageBuffer<Self, Vec<Self::Subpixel>> {
+        d.to_luma8()
+    }
+
+    fn force_bytes(b: &ImageBuffer<Self, Vec<Self::Subpixel>>) -> &[u8] {
+        b.as_bytes()
+    }
+}
 
 fn read_image(path: &Path) -> DynamicImage {
     let mut reader = Reader::open(path)
@@ -74,7 +110,7 @@ fn create_original_terrain(image_root: &Path) -> GrayImage {
     output_image
 }
 
-fn create_downscaled_originals<P: 'static + Pixel>(
+fn create_downscaled_originals<P: 'static + Pixel<Subpixel = u8> + ColorMapping>(
             image_root: &Path,
             internal_destination: &str,
             max_level: u32,
@@ -88,12 +124,12 @@ fn create_downscaled_originals<P: 'static + Pixel>(
         let downscale = 1u32 << level;
         println!("Creating level {level} (1/{downscale} original size)");
 
-        let image = DynamicImage::from(
+        let image = <P as ColorMapping>::dynamic_to_specific(DynamicImage::from(
             resize(original,
                    original_width / downscale,
                    original_height / downscale,
                    FILTER_TYPE)
-        ).to_rgb8();//.to_luma8();
+        ));
 
         let (width, height) = image.dimensions();
 
@@ -106,23 +142,26 @@ fn create_downscaled_originals<P: 'static + Pixel>(
             image.as_bytes(),
             width,
             height,
-            COLOR_TYPE
+            <P as ColorMapping>::color_type(),
         ).expect(format!("Failed to write level {level}").as_str());
 
         println!("Level {level} succeeded: {width} x {height}");
     }
 }
 
-fn create_subimages(image_root: &Path, internal_destination: &str, max_level: u32, num_columns: u32, num_rows: u32) {
+fn create_subimages<Map: ColorMapping + 'static>(
+            image_root: &Path,
+            internal_destination: &str,
+            max_level: u32,
+            num_columns: u32,
+            num_rows: u32
+        ) {
     for level in 0..=max_level {
         println!("Creating {}x{} subimages for level {}", num_columns, num_rows, level);
 
         let level_path = image_root.join(format!("{internal_destination}/{level}"));
 
-        let full_image = read_image(&level_path.join("full.png"))
-            .to_rgb8();
-            // .to_luma8();
-
+        let full_image = Map::dynamic_to_specific(read_image(&level_path.join("full.png")));
         let (full_width, full_height) = full_image.dimensions();
 
         let subimages_path = level_path.join(format!("{num_columns}x{num_rows}"));
@@ -151,10 +190,11 @@ fn create_subimages(image_root: &Path, internal_destination: &str, max_level: u3
 
                 image::save_buffer(
                     subimages_path.join(format!("{column}.{row}.png")),
-                    subimage.as_bytes(),
+                    // subimage.as_bytes(),
+                    Map::force_bytes(&subimage),
                     subimage_width,
                     subimage_height,
-                    COLOR_TYPE
+                    Map::color_type(),
                 ).expect(format!("  Failed to write level {level} subimage at {column}.{row}").as_str());
             }
         }
@@ -163,26 +203,40 @@ fn create_subimages(image_root: &Path, internal_destination: &str, max_level: u3
     }
 }
 
+enum WhichToGenerate {
+    Color,
+    Height,
+}
+
 fn main() {
     // Expects to be run with CWD in the project root
     let image_root = Path::new("./www/images");
 
-    // let original = create_original_terrain(image_root);
+    const GENERATE: WhichToGenerate = WhichToGenerate::Height;
+    match GENERATE {
+        WhichToGenerate::Color => {
+            let color_image = read_image(&image_root.join("earth_color/0/full.png"));
+            let original = color_image.as_rgb8().expect("Wrong color type!");
 
-    // let original_dynamic = image::open(image_root.join("earth_height/0/full.png"))
-    //     .map_err(|e| e.to_string()).expect("Failed to load image!");
-    //
-    // let original = original_dynamic
-    //     .as_luma8()
-    //     .expect("Failed to get Luma8 Image!");
+            let (width_0, height_0) = original.dimensions();
+            println!("Loaded image: {} x {}", width_0, height_0);
 
-    let color_image = read_image(&image_root.join("earth_color/0/full.png"));
-    let original = color_image.as_rgb8().expect("Wrong color type!");
+            create_downscaled_originals(image_root, "earth_color", 2, original);
+            create_subimages::<Rgb<u8>>(image_root, "earth_color", 2, 4, 2);
+        }
+        WhichToGenerate::Height => {
+            let original_dynamic = image::open(image_root.join("earth_height/0/full.png"))
+                .map_err(|e| e.to_string()).expect("Failed to load image!");
 
-    let (width_0, height_0) = original.dimensions();
+            let original = original_dynamic
+                .as_luma8()
+                .expect("Failed to get Luma8 Image!");
 
-    println!("Loaded image: {} x {}", width_0, height_0);
+            let (width_0, height_0) = original.dimensions();
+            println!("Loaded image: {} x {}", width_0, height_0);
 
-    create_downscaled_originals(image_root, "earth_color", 2, original);
-    create_subimages(image_root, "earth_color", 2, 4, 2);
+            create_downscaled_originals(image_root, "earth_height", 2, original);
+            create_subimages::<Luma<u8>>(image_root, "earth_height", 2, 4, 2);
+        }
+    }
 }

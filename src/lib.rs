@@ -8,7 +8,9 @@ use utils::prelude::*;
 mod utils;
 mod render_core;
 mod interaction_core;
+mod data_core;
 mod application;
+
 use crate::render_core::animation::run_animation_loop;
 use crate::render_core::viewport::Viewport;
 use crate::utils::set_panic_hook;
