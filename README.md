@@ -1,5 +1,18 @@
 # Heavily under development
 
+Find the latest deployment [here](https://retascent.github.io/ghg/).
+
+# About the Project
+
+As a systems programmer, traditionally in C++, I find Rust very satisfying and fun.
+However, since most systems programming jobs are still based in C++ instead of Rust, I want a fun and engaging project to work on for myself.
+
+I have also meddled (both as a professional and a hobbyist) with WASM, and I have enjoyed that as well.
+So here is a combination of those two passions, along with some 3D programming (which I also love), and various related topics.
+
+The Project Temporarily Known As GHG is intended to be a climate change data visualization tool.
+Interactivity and slick visuals tend to make for superb education tools, [if done correctly](https://eater.net/quaternions).
+
 # Building GHG
 
 - Install [`wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/). More information available [here](https://github.com/rustwasm/wasm-pack).
@@ -18,8 +31,13 @@ A few additional projects exist in `/src/bin/`. Below is some information about 
 
 ## `texture_splitter`
 
-
+A work-in-progress for manually downscaling and splitting up large images to make them more palatable to the web.
+The terrain and color maps that I use are 1/16 the area of the originals, because the originals are way too big to download quickly.
+I plan to use the downscaled versions for when the user is zoomed out, and to dynamically pull in high-resolution pieces of the visible area when the user zooms in.
 
 ## `air_temperature`
 
-
+Another work-in-progress for the data pipeline needed for this project.
+Most of the data I have gathered so far has been in HDF5 (or similar) format, and that isn't easy to just pull in and parse inside the browser.
+Instead, I am build a data gathering and processing step to pull these files and export them in reasonable formats, such as images.
+The images can then be easily mapped as textures to the GPU for display once they're fetched in the browser.
