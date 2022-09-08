@@ -2,9 +2,10 @@
 
 precision mediump float;
 
+#define M_PI 3.1415926535898
+
 in vec3 fragPosition;
 in vec3 fragNormal;
-in vec2 fragSamplePosition;
 in vec4 fragColor;
 
 uniform sampler2D s_textureMap;
@@ -21,6 +22,12 @@ uniform vec3 u_lightColor;
 
 uniform vec3 u_cameraPosition;
 uniform float u_specularStrength;
+
+vec2 pointToUv(vec3 pointOnSphere) {
+    float u = clamp(0.5 + atan(pointOnSphere.x, pointOnSphere.z) / 2.0 / M_PI, 0.0, 1.0);
+    float v = clamp(0.5 + asin(pointOnSphere.y) / M_PI, 0.0, 1.0);
+    return vec2(u, v);
+}
 
 vec3 getAmbientLight() {
     return u_ambientStrength * u_ambientColor;
@@ -41,9 +48,19 @@ vec3 getSpecularLight(vec3 lightDir, vec3 norm) {
 }
 
 vec4 getTerrainColor() {
+    // TODO: fragSamplePosition cannot be calculated in vertex shader and passed here as-is.
+    // Because vertex values are interpolated, the small space on the "back" of the planet (where the texture
+    // wraps) is a 1-vertex-wide gap that interpolates fragments across the whole planet texture.
+    // The simplest solution may be to double up the vertices just along that back line, so they map cleanly.
+
+    vec2 fragSamplePosition = pointToUv(normalize(fragPosition));
+
     float terrainValue = texture(s_textureMap, fragSamplePosition).r;
     vec4 mappedColor = texture(s_colorMap, fragSamplePosition);
-    return mix(fragColor, mappedColor, 0.93);
+    return mix(fragColor, mappedColor, 0.99);
+
+    // Grayscale based on depth:
+//    return mix(fragColor, vec4(terrainValue, terrainValue, terrainValue, 1.0), 0.93);
 }
 
 void main() {

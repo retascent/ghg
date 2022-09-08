@@ -1,7 +1,6 @@
 #version 300 es
 
-#define M_PI 3.14159265358979
-// 32384626433832795
+#define M_PI 3.1415926535898
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
@@ -18,7 +17,6 @@ uniform mat4 u_projection;
 
 out vec3 fragPosition;
 out vec3 fragNormal;
-out vec2 fragSamplePosition;
 out vec4 fragColor;
 
 vec2 pointToUv(vec3 pointOnSphere) {
@@ -44,20 +42,13 @@ void main() {
     vec2 texturePoint = pointToUv(normalize(position));
     float terrainValue = texture(s_textureMap, texturePoint).r;
 
-    vec3 scaled_position;
-//    if (isWater(texturePoint)) {
-//        float positionScale = 1.0 - u_terrainScale / 2.0;
-//        scaled_position = position * positionScale;
-//    } else {
-        float positionScale = 1.0 + (terrainValue * u_terrainScale) - u_terrainScale / 2.0;
-        scaled_position = position * positionScale;
-//    }
+    float positionScale = 1.0 + (terrainValue * u_terrainScale) - u_terrainScale / 2.0;
+    vec3 scaled_position = position * positionScale;
 
     gl_Position = u_projection * u_view * u_model * vec4(scaled_position, 1.0);
 
     fragPosition = vec3(u_model * vec4(scaled_position, 1.0));
     fragNormal = mat3(transpose(inverse(u_model))) * normal; // TODO: Inverse is very slow
 
-    fragSamplePosition = texturePoint;
     fragColor = color;
 }
