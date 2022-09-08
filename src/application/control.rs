@@ -71,7 +71,7 @@ impl Controller {
 
                 let new_position = direction_to_camera * capped_new_distance;
 
-                ghg_log!("last={:?} new={:?}, direction={:?} dist={}", last_position, new_position, direction_to_camera, capped_new_distance);
+                // ghg_log!("last={:?} new={:?}, direction={:?} dist={}", last_position, new_position, direction_to_camera, capped_new_distance);
                 borrowed_cam.set_position(new_position);
             }
         }));

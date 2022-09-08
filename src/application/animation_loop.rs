@@ -75,10 +75,6 @@ pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingCon
         ghg_log!("Received asynchronously: {:?}", data);
     });
 
-    ghg_log!("Pre-loop");
-    // let mut started_temp_download = false;
-    // let mut temp_data = None;
-
     Ok(wrap_animation_body(move |viewport: &Viewport, _delta_time: Duration| {
         if DEBUG_FRUSTUM {
             frustum_test_camera.orbit_around_target(&nglm::zero(),
