@@ -11,7 +11,6 @@ change data. This project uses Rust WASM and WebGL to provide the best performan
 [[bin]]
 name = "air_temperature"
 required-features = [
-    "manual_png",
     "read_netcdf",
 ]
 
@@ -24,7 +23,6 @@ crate-type = ["cdylib", "rlib"]
 [features]
 default = ["console_error_panic_hook"]
 read_netcdf = ["hdf5-sys", "netcdf-src", "netcdf"] # Requires HDF5 to be installed, or build with `--features hdf5-sys/static,netcdf-src/static`
-manual_png = ["png"]
 
 [dependencies]
 image = "0.24.2"
@@ -56,7 +54,7 @@ wee_alloc = { version = "0.4.5", optional = true }
 hdf5-sys = { version = "0.8.1", optional = true }
 netcdf-src = { version = "0.2.0", optional = true }
 netcdf = { version = "0.7.0", optional = true }
-png = { version = "0.17.5", optional = true }
+png = { version = "0.17.5", optional = false }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
@@ -92,3 +90,8 @@ features = [
 debug = true
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
+
+[profile.dev.package.image]
+opt-level = 3
+[profile.dev.package.png]
+opt-level = 3
