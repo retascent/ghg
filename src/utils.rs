@@ -35,6 +35,7 @@ pub mod prelude {
     }
 }
 
+use std::ops::Deref;
 use prelude::*;
 
 #[wasm_bindgen]
@@ -45,13 +46,12 @@ pub fn alloc(len: usize) -> *mut u8 {
     ptr
 }
 
-#[wasm_bindgen]
-pub fn read_img(ptr: *mut u8, len: usize) {
-    let img = unsafe { Vec::from_raw_parts(ptr, len, len) };
+pub fn assign_shared<T>(f: &std::rc::Rc<std::cell::RefCell<T>>, value: T) {
+    *f.borrow_mut() = value;
+}
 
-    if let Err(e) = image::load_from_memory(&img) {
-        ghg_log!("{}", &e.to_string());
-    }
+pub fn read_shared<T: Copy>(f: &std::rc::Rc<std::cell::RefCell<T>>) -> T {
+    *f.borrow().deref()
 }
 
 macro_rules! ghg_log {

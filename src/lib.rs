@@ -9,7 +9,7 @@ use utils::prelude::*;
 mod utils;
 mod render_core;
 mod interaction_core;
-mod data_core;
+pub mod data_core;
 mod application;
 
 use crate::render_core::animation::run_animation_loop;

@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 use wasm_bindgen::JsValue;
-use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlVertexArrayObject};
+use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlVertexArrayObject};
+use crate::application::shaders::ShaderContext;
 use crate::application::vertex::BasicMesh;
 use crate::render_core::camera::Camera;
 
@@ -39,7 +40,7 @@ pub trait ToMesh {
 
 #[derive(Copy, Clone, Debug)]
 struct VertexForDisplay {
-    location: u32,
+    location: Option<u32>,
     size: i32,
     offset: i32,
 }
@@ -49,8 +50,8 @@ pub struct DrawBuffers {
     pub vertex_array_object: WebGlVertexArrayObject,
     pub index_buffer: WebGlBuffer,
 
-    pub num_vertices: u32,
-    pub num_indices: u32,
+    num_vertices: u32,
+    num_indices: u32,
 }
 
 #[allow(dead_code)]
@@ -60,8 +61,7 @@ pub enum MeshMode {
 }
 
 pub fn add_mesh<T: ToMesh>(
-            context: &WebGl2RenderingContext,
-            program: &WebGlProgram,
+            shader_context: &ShaderContext,
             mesh: &T,
             mode: MeshMode
         ) ->  Result<DrawBuffers, JsValue> {
@@ -70,14 +70,15 @@ pub fn add_mesh<T: ToMesh>(
     let vertex_attributes = vertex_attribute_tags.iter()
         .map(|a|  {
             let a_name: &str = &a.name[..];
+            let location = shader_context.context.get_attrib_location(&shader_context.program, a_name);
             VertexForDisplay{
-                location: context.get_attrib_location(&program, a_name) as u32,
+                location: if location != -1 { Some(location as u32) } else { None },
                 size: a.size as i32,
                 offset: a.offset as i32,
             }});
 
-    let vertex_buffer = context.create_buffer().ok_or("Failed to create vertex buffer")?;
-    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vertex_buffer));
+    let vertex_buffer = shader_context.context.create_buffer().ok_or("Failed to create vertex buffer")?;
+    shader_context.context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vertex_buffer));
 
     let draw_mode = match mode{
         MeshMode::Static => WebGl2RenderingContext::STATIC_DRAW,
@@ -89,35 +90,36 @@ pub fn add_mesh<T: ToMesh>(
     unsafe {
         let vert_array_buffer_view = js_sys::Float32Array::view(vertices);
 
-        context.buffer_data_with_array_buffer_view(
+        shader_context.context.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::ARRAY_BUFFER,
             &vert_array_buffer_view,
             draw_mode,
         );
     }
 
-    let vertex_array_object = context
+    let vertex_array_object = shader_context.context
         .create_vertex_array()
         .ok_or("Could not create vertex array object")?;
-    context.bind_vertex_array(Some(&vertex_array_object));
+    shader_context.context.bind_vertex_array(Some(&vertex_array_object));
 
     vertex_attributes
         .for_each(|a| {
-            context.enable_vertex_attrib_array(a.location);
-            context.vertex_attrib_pointer_with_i32(a.location, a.size, WebGl2RenderingContext::FLOAT, false,
-                                                   std::mem::size_of::<T::Vertex>() as i32, a.offset
-            );
+            if a.location.is_some() {
+                shader_context.context.enable_vertex_attrib_array(a.location.unwrap());
+                shader_context.context.vertex_attrib_pointer_with_i32(a.location.unwrap(), a.size, WebGl2RenderingContext::FLOAT, false,
+                                                                      std::mem::size_of::<T::Vertex>() as i32, a.offset);
+            }
         });
 
-    let index_buffer = context.create_buffer().ok_or("Failed to create index buffer")?;
-    context.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
+    let index_buffer = shader_context.context.create_buffer().ok_or("Failed to create index buffer")?;
+    shader_context.context.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
 
     let indices = mesh.get_flat_index_buffer();
     let num_indices = indices.len() as u32;
     unsafe {
         let index_array_buffer_view = js_sys::Uint32Array::view(indices);
 
-        context.buffer_data_with_array_buffer_view(
+        shader_context.context.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
             &index_array_buffer_view,
             draw_mode,
@@ -137,6 +139,7 @@ pub fn add_mesh<T: ToMesh>(
 pub enum DrawMode {
     Surface,
     Wireframe,
+    Points,
 }
 
 pub fn clear_frame(context: &WebGl2RenderingContext) {
@@ -154,6 +157,7 @@ pub fn draw_meshes(context: &WebGl2RenderingContext, camera: &Camera, buffers: &
                 let mode: u32 = match draw_mode {
                     DrawMode::Surface => WebGl2RenderingContext::TRIANGLES,
                     DrawMode::Wireframe => WebGl2RenderingContext::LINE_STRIP,
+                    DrawMode::Points => WebGl2RenderingContext::POINTS,
                 };
                 context.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&b.index_buffer));
                 context.draw_elements_with_i32(mode,

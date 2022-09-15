@@ -8,7 +8,7 @@ use image::{GrayAlphaImage, GrayImage, ImageBuffer, Luma, LumaA, Pixel, Rgb, Rgb
 use itertools::izip;
 use netcdf;
 use netcdf::{Numeric, Variable};
-use serde::Serialize;
+use ghg::data_core::metadata::{ChannelMetadata, Metadata};
 
 use std::io::prelude::*;
 
@@ -328,18 +328,12 @@ impl<T: DataType> ToImage<Rgb<u8>> for [Data2dStatistics<T>; 3] where Data2dStat
     }
 }
 
-#[derive(Serialize)]
-struct ChannelMetadata {
-    min: f64,
-    max: f64,
-}
-
 trait ToMetadata {
-    fn to_metadata(&self) -> Vec<ChannelMetadata>;
+    fn to_metadata(&self) -> Metadata;
 }
 
 impl ToMetadata for [Data2dStatistics<f64>; 3] {
-    fn to_metadata(&self) -> Vec<ChannelMetadata> {
+    fn to_metadata(&self) -> Metadata {
         self.iter()
             .map(|ds| ChannelMetadata{ min: ds.min.unwrap(), max: ds.max.unwrap() } )
             .collect()

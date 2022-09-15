@@ -176,6 +176,7 @@ impl ToMesh for BasicMesh {
 
     // TODO: This is sphere-specific code, so I need to implement Sphere as its own mesh collection.
     fn is_visible(&self, camera: &Camera) -> bool {
+        // true
         let mesh_center = self.center;
         if mesh_center.is_none() {
             ghg_error!("Invalid mesh!");

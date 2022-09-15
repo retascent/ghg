@@ -1,5 +1,6 @@
+use crate::application::shaders::ShaderContext;
 use crate::render_core::uniform;
-use crate::render_core::uniform::{ShaderContext, SmartUniform};
+use crate::render_core::uniform::SmartUniform;
 
 pub struct LightParameters {
     pub ambient_strength: SmartUniform<f32>,

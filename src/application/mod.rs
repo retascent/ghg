@@ -5,3 +5,4 @@ pub mod sphere;
 pub mod planet;
 pub mod lighting;
 pub mod control;
+pub mod data;

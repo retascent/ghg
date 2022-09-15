@@ -18,6 +18,7 @@ required-features = [
 name = "texture_splitter"
 
 [lib]
+name = "ghg"
 crate-type = ["cdylib", "rlib"]
 
 [features]
@@ -87,9 +88,10 @@ features = [
 ]
 
 [profile.release]
-debug = true
+#debug = true
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
+lto = true
 
 [profile.dev.package.image]
 opt-level = 3

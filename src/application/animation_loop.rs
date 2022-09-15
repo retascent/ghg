@@ -5,16 +5,17 @@ use std::time::Duration;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
 use crate::application::control::Controller;
+use crate::application::data::load_temp_data;
 use crate::application::lighting::LightParameters;
 use crate::application::planet::{load_planet_color, load_planet_terrain};
-use crate::application::shaders::get_shaders;
-use crate::application::sphere::generate_sphere;
+use crate::application::shaders::{get_data_shaders, get_planet_shaders, ShaderContext};
+use crate::application::sphere::{generate_sphere, generate_spikey_sphere};
 use crate::application::vertex::BasicMesh;
 use crate::render_core::animation::{AnimationFn, wrap_animation_body};
 use crate::render_core::camera::Camera;
 use crate::render_core::mesh::{add_mesh, clear_frame, draw_meshes, DrawBuffers, DrawMode, MeshMode};
 use crate::render_core::uniform;
-use crate::render_core::uniform::ShaderContext;
+use crate::utils::{assign_shared, read_shared};
 use crate::Viewport;
 
 use crate::utils::prelude::*;
@@ -34,9 +35,9 @@ fn load_textures_async(context: WebGl2RenderingContext, done: Rc<RefCell<bool>>)
         clone_all!(context, done, terrain_loaded, color_loaded);
         spawn_local(async move {
             load_planet_terrain(context).await.expect("Failed to download terrain texture!");
-            *terrain_loaded.borrow_mut().deref_mut() = true;
-            if *color_loaded.borrow().deref() {
-                *done.borrow_mut().deref_mut() = true;
+            assign_shared(&terrain_loaded, true);
+            if read_shared(&color_loaded) {
+                assign_shared(&done, true);
                 remove_overlay();
             }
         });
@@ -46,13 +47,47 @@ fn load_textures_async(context: WebGl2RenderingContext, done: Rc<RefCell<bool>>)
         clone_all!(context, done, terrain_loaded, color_loaded);
         spawn_local(async move {
             load_planet_color(context).await.expect("Failed to download color texture!");
-            *color_loaded.borrow_mut().deref_mut() = true;
-            if *terrain_loaded.borrow().deref() {
-                *done.borrow_mut().deref_mut() = true;
+            assign_shared(&color_loaded, true);
+            if read_shared(&terrain_loaded) {
+                assign_shared(&done, true);
                 remove_overlay();
             }
         });
     }
+}
+
+fn load_temp_data_async(shader_context: ShaderContext, done: Rc<RefCell<bool>>) {
+    spawn_local(async move {
+        load_temp_data(shader_context).await.expect("Failed to download temperature data");
+        assign_shared(&done, true);
+    })
+}
+
+fn generate_drawable_sphere(subdivisions: u32, points_per_subdivision: u32,
+                            shader_context: ShaderContext) -> Vec<(BasicMesh, DrawBuffers)> {
+    let sphere_meshes = generate_sphere(subdivisions, points_per_subdivision);
+    let buffers: Vec<DrawBuffers> = sphere_meshes.iter()
+        .map(|m| {
+            add_mesh(&shader_context, m, MeshMode::Static).unwrap()
+        }).collect();
+
+    sphere_meshes.into_iter()
+        .zip(buffers.into_iter())
+        .collect()
+}
+
+fn generate_drawable_spikey_sphere(subdivisions: u32, points_per_subdivision: u32,
+                                   thickness: f64, data_height: f64,
+                                   shader_context: ShaderContext) -> Vec<(BasicMesh, DrawBuffers)> {
+    let sphere_meshes = generate_spikey_sphere(subdivisions, points_per_subdivision, thickness, data_height);
+    let buffers: Vec<DrawBuffers> = sphere_meshes.iter()
+        .map(|m| {
+            add_mesh(&shader_context, m, MeshMode::Static).unwrap()
+        }).collect();
+
+    sphere_meshes.into_iter()
+        .zip(buffers.into_iter())
+        .collect()
 }
 
 pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingContext)
@@ -65,32 +100,43 @@ pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingCon
     let camera = Rc::new(RefCell::new(Camera::new(&nglm::vec3(0.0, 0.0, 3.0),
                                                   &nglm::vec3(0.0, 0.0, 0.0))));
 
-    let program = get_shaders(&context)?;
-    context.use_program(Some(&program));
+    let data_shader = get_data_shaders(&context)?;
+    data_shader.use_shader();
+    let data_height = 1.35;
+    let data_meshes_and_buffers = generate_drawable_spikey_sphere(
+        5, 8, 0.01, data_height, data_shader.clone());
 
-    let sphere_meshes = generate_sphere(20, 20);
-    let buffers: Vec<DrawBuffers> = sphere_meshes.iter()
-        .map(|m| {
-            add_mesh(&context, &program, m, MeshMode::Static).unwrap()
-        }).collect();
+    let _data_min_radius = uniform::init_f32("u_dataMinRadius", &data_shader, 1.05);
+    let _data_max_radius = uniform::init_f32("u_dataMaxRadius", &data_shader, data_height as f32);
+    let _data_scale = uniform::init_f32("u_dataScaleMultiplier", &data_shader, 5.0);
 
-    let meshes_and_buffers: Vec<(BasicMesh, DrawBuffers)> = sphere_meshes.into_iter().zip(buffers.into_iter()).collect();
+    let planet_shader = get_planet_shaders(&context)?;
+    planet_shader.use_shader();
+    let planet_meshes_and_buffers = generate_drawable_sphere(
+        20, 20, planet_shader.clone());
 
-    let shader_context = ShaderContext::new(&context, &program);
-    let terrain_scale = uniform::init_f32("u_terrainScale", &shader_context, 0.03);
+    let terrain_scale = uniform::init_f32("u_terrainScale", &planet_shader, 0.03);
     let mut controller = Controller::new(canvas, &camera, terrain_scale);
 
-    let mut lighting = LightParameters::new(&shader_context);
+    let mut lighting = LightParameters::new(&planet_shader);
 
-    uniform::init_i32("s_textureMap", &shader_context, 0);
-    uniform::init_i32("s_colorMap", &shader_context, 1);
+    uniform::init_i32("s_textureMap", &planet_shader, 0);
+    uniform::init_i32("s_colorMap", &planet_shader, 1);
 
-    let mut model = uniform::new_smart_mat4("u_model", &shader_context);
-    let mut view = uniform::new_smart_mat4("u_view", &shader_context);
-    let mut projection = uniform::new_smart_mat4("u_projection", &shader_context);
+    // TODO: Need to make a uniform that can bind into multiple shader programs
+    let mut planet_model = uniform::new_smart_mat4("u_model", &planet_shader);
+    let mut planet_view = uniform::new_smart_mat4("u_view", &planet_shader);
+    let mut planet_projection = uniform::new_smart_mat4("u_projection", &planet_shader);
+
+    let mut data_model = uniform::new_smart_mat4("u_model", &data_shader);
+    let mut data_view = uniform::new_smart_mat4("u_view", &data_shader);
+    let mut data_projection = uniform::new_smart_mat4("u_projection", &data_shader);
 
     let textures_loaded = Rc::new(RefCell::new(false));
     load_textures_async(context.clone(), textures_loaded.clone());
+
+    let temp_data_loaded = Rc::new(RefCell::new(false));
+    load_temp_data_async(data_shader.clone(), temp_data_loaded.clone());
 
     let mut initial_spin = 3.0f32;
     let mut do_spin = false;
@@ -120,6 +166,8 @@ pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingCon
             do_spin = true;
         }
 
+        planet_shader.use_shader();
+
         controller.frame();
 
         clear_frame(viewport.context());
@@ -133,14 +181,30 @@ pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingCon
 
         let mvp = camera.deref().borrow().get_perspective_matrices(width, height);
 
-        model.smart_write(mvp.model.clone());
-        view.smart_write(mvp.view.clone());
-        projection.smart_write(mvp.projection.clone());
-
         if DEBUG_FRUSTUM {
-            draw_meshes(viewport.context(), &frustum_test_camera, &meshes_and_buffers, DrawMode::Surface);
+            planet_model.smart_write(mvp.model.clone());
+            planet_view.smart_write(mvp.view.clone());
+            planet_projection.smart_write(mvp.projection.clone());
+
+            draw_meshes(viewport.context(), &frustum_test_camera,
+                        &planet_meshes_and_buffers, DrawMode::Surface);
         } else {
-            draw_meshes(viewport.context(), camera.deref().borrow().deref(), &meshes_and_buffers, DrawMode::Surface);
+
+            planet_model.smart_write(mvp.model.clone());
+            planet_view.smart_write(mvp.view.clone());
+            planet_projection.smart_write(mvp.projection.clone());
+
+            draw_meshes(viewport.context(), camera.deref().borrow().deref(),
+                        &planet_meshes_and_buffers, DrawMode::Surface);
+
+            data_shader.use_shader();
+
+            data_model.smart_write(mvp.model.clone());
+            data_view.smart_write(mvp.view.clone());
+            data_projection.smart_write(mvp.projection.clone());
+
+            draw_meshes(viewport.context(), camera.deref().borrow().deref(),
+                        &data_meshes_and_buffers, DrawMode::Surface);
         }
     }))
 }

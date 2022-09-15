@@ -1,7 +1,8 @@
 use paste::paste;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
+use web_sys::{WebGl2RenderingContext, WebGlUniformLocation};
+use crate::application::shaders::ShaderContext;
 
 #[allow(unused_imports)]
 use crate::utils::prelude::*;
@@ -16,33 +17,17 @@ use crate::utils::prelude::*;
 /// multiple that point at the same uniform will cause problems. So it's not a complete solution yet.
 
 #[derive(Clone, Debug)]
-pub struct ShaderContext {
-    context: WebGl2RenderingContext,
-    program: WebGlProgram,
-}
-
-impl ShaderContext {
-    pub fn new(context: &WebGl2RenderingContext, program: &WebGlProgram) -> Self {
-        Self {
-            context: context.clone(),
-            program: program.clone(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
 #[allow(dead_code)] // name isn't used, but it is useful. TODO: Remove it if not debug
 pub struct Uniform<T: Debug> {
     name: String,
     context: WebGl2RenderingContext,
-    location: WebGlUniformLocation,
+    location: Option<WebGlUniformLocation>,
     phantom_value: PhantomData<T>, // Strongly-typed Uniforms are important
 }
 
 impl<T: Clone + Debug + PartialEq + UniformValue> Uniform<T> {
     pub fn new(name: &str, shader_context: &ShaderContext) -> Self {
-        let location = shader_context.context.get_uniform_location(&shader_context.program, name)
-            .expect(format!("Failed to find uniform {name}").as_str());
+        let location = shader_context.context.get_uniform_location(&shader_context.program, name);
         Self {
             context: shader_context.context.clone(),
             name: name.to_owned(),
@@ -85,7 +70,7 @@ impl<T: Clone + Debug + PartialEq + UniformValue> SmartUniform<T> {
 }
 
 pub trait UniformValue {
-    fn write_to_program(self, context: &WebGl2RenderingContext, location: &WebGlUniformLocation) where Self: Sized;
+    fn write_to_program(self, context: &WebGl2RenderingContext, location: &Option<WebGlUniformLocation>) where Self: Sized;
 }
 
 macro_rules! impl_uniform_creator_fns {
@@ -139,8 +124,8 @@ macro_rules! impl_uniform {
     // Self is a primitive type; pass self directly to the OpenGL function call
     ($type_name:ty, $short_name:ident, $gl_call:ident) => {
         impl UniformValue for $type_name {
-            fn write_to_program(self, context: &WebGl2RenderingContext, location: &WebGlUniformLocation) {
-                context.$gl_call(Some(location), self);
+            fn write_to_program(self, context: &WebGl2RenderingContext, location: &Option<WebGlUniformLocation>) {
+                context.$gl_call(location.as_ref(), self);
             }
         }
 
@@ -164,8 +149,8 @@ macro_rules! impl_uniform {
         $( $(self.$field:ident)? $(call self.$method:ident())? $(just $param:expr)? ),+
     ) => {
         impl UniformValue for $type_name {
-            fn write_to_program(self, context: &WebGl2RenderingContext, location: &WebGlUniformLocation) {
-                context.$gl_call(Some(location), $( $(self.$field)* $(self.$method())* $($param)* ,)+);
+            fn write_to_program(self, context: &WebGl2RenderingContext, location: &Option<WebGlUniformLocation>) {
+                context.$gl_call(location.as_ref(), $( $(self.$field)* $(self.$method())* $($param)* ,)+);
             }
         }
 

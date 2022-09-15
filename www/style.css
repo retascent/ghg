@@ -2,10 +2,11 @@
     font-family: 'Open Sans', sans-serif;
     --black: #252526;
     --white: #fff5d1;
+    --sky: #73abed;
     --box-shadow: 2px 2px 10px var(--black);
     --fade-out: 500ms;
     color: var(--black);
-    background: var(--white);
+    background: var(--sky);
     border-radius: 0.1em;
 }
 
@@ -20,7 +21,7 @@
     position: absolute;
     left: 0;
     top: 0;
-    background: #73abed00;
+    background: transparent;
     z-index: 100;
 
     opacity: 1;
@@ -32,6 +33,7 @@
 }
 
 #loading_overlay > span {
+    background: var(--white);
     display: inline-block;
     margin: auto;
     padding: 0.75em;
