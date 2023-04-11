@@ -9,7 +9,7 @@ use crate::application::data::load_temp_data;
 use crate::application::lighting::LightParameters;
 use crate::application::planet::{load_planet_color, load_planet_terrain};
 use crate::application::shaders::{get_data_shaders, get_planet_shaders, ShaderContext};
-use crate::application::sphere::{generate_sphere, generate_spikey_sphere};
+use crate::application::sphere::generate_sphere;
 use crate::application::vertex::BasicMesh;
 use crate::render_core::animation::{AnimationFn, wrap_animation_body};
 use crate::render_core::camera::Camera;
@@ -76,20 +76,6 @@ fn generate_drawable_sphere(subdivisions: u32, points_per_subdivision: u32,
         .collect()
 }
 
-fn generate_drawable_spikey_sphere(subdivisions: u32, points_per_subdivision: u32,
-                                   thickness: f64, data_height: f64,
-                                   shader_context: ShaderContext) -> Vec<(BasicMesh, DrawBuffers)> {
-    let sphere_meshes = generate_spikey_sphere(subdivisions, points_per_subdivision, thickness, data_height);
-    let buffers: Vec<DrawBuffers> = sphere_meshes.iter()
-        .map(|m| {
-            add_mesh(&shader_context, m, MeshMode::Static).unwrap()
-        }).collect();
-
-    sphere_meshes.into_iter()
-        .zip(buffers.into_iter())
-        .collect()
-}
-
 pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingContext)
         -> Result<AnimationFn, JsValue> {
 
@@ -103,8 +89,6 @@ pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingCon
     let data_shader = get_data_shaders(&context)?;
     data_shader.use_shader();
     let data_height = 1.35;
-    let data_meshes_and_buffers = generate_drawable_spikey_sphere(
-        5, 8, 0.01, data_height, data_shader.clone());
 
     let _data_min_radius = uniform::init_f32("u_dataMinRadius", &data_shader, 1.05);
     let _data_max_radius = uniform::init_f32("u_dataMaxRadius", &data_shader, data_height as f32);
@@ -202,9 +186,6 @@ pub fn get_animation_loop(canvas: HtmlCanvasElement, context: WebGl2RenderingCon
             data_model.smart_write(mvp.model.clone());
             data_view.smart_write(mvp.view.clone());
             data_projection.smart_write(mvp.projection.clone());
-
-            draw_meshes(viewport.context(), camera.deref().borrow().deref(),
-                        &data_meshes_and_buffers, DrawMode::Surface);
         }
     }))
 }

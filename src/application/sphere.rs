@@ -21,27 +21,6 @@ pub fn generate_sphere_with_position(subdivisions: u32,
         .collect()
 }
 
-pub fn generate_spikey_sphere(subdivisions: u32,
-                              points_per_subdivision: u32,
-                              thickness: f64,
-                              data_height: f64) -> Vec<BasicMesh> {
-    generate_spikey_sphere_with_position(subdivisions, points_per_subdivision, thickness, data_height, nglm::zero())
-}
-
-pub fn generate_spikey_sphere_with_position(subdivisions: u32,
-                                            points_per_subdivision: u32,
-                                            thickness: f64,
-                                            data_height: f64,
-                                            center: Vec3) -> Vec<BasicMesh> {
-    let subface_generator = SpikeySubface::with_thickness_and_height(thickness, data_height);
-    cube_normals().iter()
-        .map(|n| generate_face(
-            subface_generator.clone(),
-            n, subdivisions, points_per_subdivision, center.clone()))
-        .flatten()
-        .collect()
-}
-
 fn cube_normals() -> Vec<Vec3> {
     vec![
         Vec3::ith(1,  1.0), // up
@@ -177,99 +156,6 @@ impl SubfaceGenerator for QuadSubface {
         (
             (points_per_side * points_per_side) as usize,
             ((points_per_side - 1) * (points_per_side - 1) * 6) as usize
-        )
-    }
-}
-
-#[derive(Clone)]
-struct SpikeySubface {
-    thickness: f32,
-    height: f32,
-}
-
-impl SpikeySubface {
-    fn with_thickness_and_height(thickness: f64, height: f64) -> Self {
-        Self {
-            thickness: thickness as f32,
-            height: height as f32,
-        }
-    }
-}
-
-impl SubfaceGenerator for SpikeySubface {
-    fn add_for_point(&self,
-                     mesh: &mut BasicMesh,
-                     x: u32, y: u32,
-                     _face_normal: &Vec3,
-                     normal: &Vec3, face_color: &Vec4,
-                     points_per_side: u32,
-                     sphere_point: &Vec3,
-    ) {
-        if y != points_per_side - 1 { //  && x != points_per_side - 1
-            let sphere_point_at_extreme = sphere_point * self.height;
-            let axis_a = nglm::vec3(normal.y, normal.z, normal.x);
-            let axis_b = nglm::cross(normal, &axis_a);
-
-            mesh.push_vertex(Vertex::from_vecs(
-                sphere_point + axis_a * self.thickness / 2.0,
-                normal.clone(), face_color.clone(),
-            ));
-            mesh.push_vertex(Vertex::from_vecs(
-                sphere_point - axis_a * self.thickness / 2.0,
-                normal.clone(), face_color.clone(),
-            ));
-            mesh.push_vertex(Vertex::from_vecs(
-                sphere_point_at_extreme + axis_a * self.thickness / 2.0,
-                normal.clone(), face_color.clone(),
-            ));
-            mesh.push_vertex(Vertex::from_vecs(
-                sphere_point_at_extreme - axis_a * self.thickness / 2.0,
-                normal.clone(), face_color.clone(),
-            ));
-
-            let num_vertices_per_spike = 8;
-            let first_quad_index = num_vertices_per_spike * (y * points_per_side + x);
-            let second_quad_index = first_quad_index + 4;
-
-            mesh.push_index(first_quad_index + 0);
-            mesh.push_index(first_quad_index + 3);
-            mesh.push_index(first_quad_index + 2);
-            mesh.push_index(first_quad_index + 0);
-            mesh.push_index(first_quad_index + 1);
-            mesh.push_index(first_quad_index + 3);
-
-            mesh.push_vertex(Vertex::from_vecs(
-                sphere_point + axis_b * self.thickness / 2.0,
-                normal.clone(), face_color.clone(),
-            ));
-            mesh.push_vertex(Vertex::from_vecs(
-                sphere_point - axis_b * self.thickness / 2.0,
-                normal.clone(), face_color.clone(),
-            ));
-            mesh.push_vertex(Vertex::from_vecs(
-                sphere_point_at_extreme + axis_b * self.thickness / 2.0,
-                normal.clone(), face_color.clone(),
-            ));
-            mesh.push_vertex(Vertex::from_vecs(
-                sphere_point_at_extreme - axis_b * self.thickness / 2.0,
-                normal.clone(), face_color.clone(),
-            ));
-
-            mesh.push_index(second_quad_index + 0);
-            mesh.push_index(second_quad_index + 3);
-            mesh.push_index(second_quad_index + 2);
-            mesh.push_index(second_quad_index + 0);
-            mesh.push_index(second_quad_index + 1);
-            mesh.push_index(second_quad_index + 3);
-
-            // TODO: Square at the end of the spike
-        }
-    }
-
-    fn vertex_and_index_size(&self, points_per_side: u32) -> (usize, usize) {
-        (
-            ((points_per_side - 1) * (points_per_side) * 8) as usize,
-            ((points_per_side - 1) * (points_per_side) * 12) as usize,
         )
     }
 }
