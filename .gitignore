@@ -2,6 +2,7 @@ Cargo.lock
 wasm-pack.log
 
 .idea/
+.fleet/
 **/*.rs.bk
 
 /target

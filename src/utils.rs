@@ -64,10 +64,12 @@ macro_rules! ghg_error {
     ($($t:tt)*) => (error(&format_args!($($t)*).to_string()))
 }
 
+#[macro_export]
 macro_rules! clone {
     ($i:ident) => (let $i = $i.clone();)
 }
 
+#[macro_export]
 macro_rules! clone_all {
     ($($i:ident),+) => {
         $(clone!($i);)+
@@ -81,4 +83,4 @@ pub(crate) use ghg_log;
 pub(crate) use ghg_error;
 
 #[allow(unused_imports)]
-pub(crate) use clone_all;
+pub use clone_all;

@@ -6,7 +6,7 @@ use web_sys::WebGl2RenderingContext;
 use utils::prelude::*;
 
 #[macro_use]
-mod utils;
+pub mod utils;
 mod render_core;
 mod interaction_core;
 pub mod data_core;

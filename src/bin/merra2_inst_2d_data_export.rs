@@ -26,7 +26,7 @@ use std::io::prelude::*;
 ///
 /// All data should be downloaded into /raw_data/merra2_1980_2021 within this repo.
 
-// Instantaneous Two-Dimensional Collections: instM_1d_asm_Nx (M2IMNXASM): Single-Level Diagnostics
+// Instantaneous Two-Dimensional Collections: instM_2d_asm_Nx (M2IMNXASM): Single-Level Diagnostics
 const TIME_DIMENSION: usize = 0;
 const LATITUDE_DIMENSION: usize = 1;
 const LONGITUDE_DIMENSION: usize = 2;
@@ -49,29 +49,19 @@ macro_rules! save_channels {
             .save($output_name.clone())
             .expect("Failed to save data as image!");
 
-        let metadata_name = $output_name.with_extension("metadata");
-        let mut metadata_file = File::create(metadata_name)?;
-        let metadata = serde_json::to_string(&output_channels.to_metadata()).expect("Failed to serialize metadata");
-        write!(metadata_file, "{}", metadata)?;
+        println!("Saved image: {:?}", $output_name);
 
-        // WIP trying to use metadata instead of a separate file.
-        // let output_file = File::create(difference_output).unwrap();
-        // let ref mut buf_writer = BufWriter::new(output_file);
-        // let mut encoder = Encoder::new(
-        //     buf_writer, LONGITUDE_POINTS as u32, LATITUDE_POINTS as u32
-        // );
-        // encoder.set_color(png::ColorType::Grayscale);
-        // encoder.set_depth(png::BitDepth::Eight);
-        // encoder.add_text_chunk("Description".to_string(),
-        //     format!("min={}, max={}", differences.min.unwrap(), differences.max.unwrap()),
-        // ).unwrap();
-        // let mut writer = encoder.write_header().expect("Failed to write header!");
-        // writer.write_image_data(&output_buffer).expect("Failed to write image data!");
+        let metadata_name = $output_name.with_extension("metadata");
+        let mut metadata_file = File::create(metadata_name.clone()).expect("Failed to create metadata file");
+        let metadata = serde_json::to_string(&output_channels.to_metadata()).expect("Failed to serialize metadata");
+        write!(metadata_file, "{}", metadata).expect("Failed to write metadata");
+
+        println!("Saved metadata: {:?}", metadata_name);
     };
 }
 
 fn main() -> std::io::Result<()> {
-    let output_root = Path::new("www/images/earth_temp");
+    let output_root = Path::new("www/images/earth_ozone");
     let data_source = Path::new("raw_data/merra2_1980_2021");
     let data_paths = find_data_files(data_source, OsStr::new("nc4"));
 
@@ -82,7 +72,7 @@ fn main() -> std::io::Result<()> {
         println!("Files: {files:?}");
 
         let (data_1980, data_2021, differences) = {
-            let variables = ["T2M"];
+            let variables = ["TO3"];
             let mut data_1980 = read_data(&files[0], &variables);
             let mut data_2021 = read_data(&files[1], &variables);
 
@@ -146,11 +136,7 @@ fn read_data<T: DataType>(path: &PathBuf, variable_names: &[&str]) -> Vec<Data2d
 
 fn read_variable<T: DataType>(v: &Variable) -> Data2dStatistics<T> {
     println!("Reading variable: {:?} (length = {})", v.name(), v.len());
-
-    match v.name().as_str() {
-        "T2M" => Data2dStatistics::<T>::from_variable(v), // TODO: This mapping is pretty bad
-        _ => panic!("Unsupported variable!"),
-    }
+    Data2dStatistics::<T>::from_variable(v)
 }
 
 #[derive(Clone)]

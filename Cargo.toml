@@ -9,7 +9,7 @@ description = """GHG is an online data visualization tool for better connecting 
 change data. This project uses Rust WASM and WebGL to provide the best performance and accessibility possible."""
 
 [[bin]]
-name = "air_temperature"
+name = "merra2_inst_2d_data_export"
 required-features = [
     "read_netcdf",
 ]
@@ -26,12 +26,13 @@ default = ["console_error_panic_hook"]
 read_netcdf = ["hdf5-sys", "netcdf-src", "netcdf"] # Requires HDF5 to be installed, or build with `--features hdf5-sys/static,netcdf-src/static`
 
 [dependencies]
+clap = "4.1.6"
 image = "0.24.2"
 image-base64-wasm = "0.6.0"
 itertools = "0.10.3"
 js-sys = "0.3.57"
-memoffset = "0.6.5"
-nalgebra-glm = "0.17.0"
+memoffset = "0.8.0"
+nalgebra-glm = "0.18.0"
 paste = "1.0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -49,7 +50,7 @@ console_error_panic_hook = { version = "0.1.6", optional = true }
 # allocator, however.
 #
 # Unfortunately, `wee_alloc` requires nightly Rust when targeting wasm for now.
-wee_alloc = { version = "0.4.5", optional = true }
+#wee_alloc = { version = "0.4.5", optional = true }
 
 # Used by some data loader tools
 hdf5-sys = { version = "0.8.1", optional = true }

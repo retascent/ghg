@@ -35,7 +35,7 @@ A work-in-progress for manually downscaling and splitting up large images to mak
 The terrain and color maps that I use are 1/16 the area of the originals, because the originals are way too big to download quickly.
 I plan to use the downscaled versions for when the user is zoomed out, and to dynamically pull in high-resolution pieces of the visible area when the user zooms in.
 
-## `air_temperature`
+## `merra2_inst_2d_data_export`
 
 Another work-in-progress for the data pipeline needed for this project.
 Most of the data I have gathered so far has been in HDF5 (or similar) format, and that isn't easy to just pull in and parse inside the browser.
