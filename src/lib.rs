@@ -10,6 +10,7 @@ pub mod utils;
 mod render_core;
 mod interaction_core;
 pub mod data_core;
+pub mod data_processing;
 mod application;
 
 use crate::render_core::animation::run_animation_loop;

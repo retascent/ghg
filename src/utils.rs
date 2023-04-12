@@ -60,9 +60,15 @@ macro_rules! ghg_log {
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
 
+#[allow(unused_imports)]
+pub(crate) use ghg_log;
+
 macro_rules! ghg_error {
     ($($t:tt)*) => (error(&format_args!($($t)*).to_string()))
 }
+
+#[allow(unused_imports)]
+pub(crate) use ghg_error;
 
 #[macro_export]
 macro_rules! clone {
@@ -77,10 +83,13 @@ macro_rules! clone_all {
 }
 
 #[allow(unused_imports)]
-pub(crate) use ghg_log;
-
-#[allow(unused_imports)]
-pub(crate) use ghg_error;
-
-#[allow(unused_imports)]
 pub use clone_all;
+
+#[macro_export]
+macro_rules! count {
+    () => (0usize);
+    ( $x:tt $($xs:tt)* ) => (1usize + ghg::count!($($xs)*));
+}
+
+#[allow(unused_imports)]
+pub use count;
