@@ -9,6 +9,12 @@ description = """GHG is an online data visualization tool for better connecting 
 change data. This project uses Rust WASM and WebGL to provide the best performance and accessibility possible."""
 
 [[bin]]
+name = "debug_cdf_file"
+required-features = [
+    "read_netcdf",
+]
+
+[[bin]]
 name = "merra2_inst_2d_data_export"
 required-features = [
     "read_netcdf",
@@ -45,17 +51,10 @@ wasm-bindgen-futures = "0.4.32"
 # code size when deploying.
 console_error_panic_hook = { version = "0.1.6", optional = true }
 
-# `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
-# compared to the default allocator's ~10K. It is slower than the default
-# allocator, however.
-#
-# Unfortunately, `wee_alloc` requires nightly Rust when targeting wasm for now.
-#wee_alloc = { version = "0.4.5", optional = true }
-
 # Used by some data loader tools
 hdf5-sys = { version = "0.8.1", optional = true }
-netcdf-src = { version = "0.2.0", optional = true }
-netcdf = { version = "0.7.0", optional = true }
+netcdf-src = { version = "0.3.0", optional = true }
+netcdf = { version = "0.8.1", optional = true }
 png = { version = "0.17.5", optional = false }
 
 [dev-dependencies]

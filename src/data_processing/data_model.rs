@@ -6,11 +6,11 @@ use image::{GrayAlphaImage, GrayImage, ImageBuffer, Luma, LumaA, Pixel, Rgb, Rgb
 pub trait DataType = Copy + Clone + Default + PartialOrd + Sub<Output=Self>;
 
 #[derive(Clone)]
-pub struct Horizontal<T: DataType> {
+pub struct Data1d<T: DataType> {
     pub columns: Vec<T>,
 }
 
-impl<T: DataType> Horizontal<T> {
+impl<T: DataType> Data1d<T> {
     fn new(size: usize) -> Self {
         let mut columns = Vec::with_capacity(size);
         columns.resize(size, T::default());
@@ -25,13 +25,13 @@ impl<T: DataType> Horizontal<T> {
 }
 
 pub struct Data2d<T: DataType> {
-    pub rows: Vec<Horizontal<T>>,
+    pub rows: Vec<Data1d<T>>,
 }
 
 impl<T: DataType> Data2d<T> {
     pub fn new(width: usize, height: usize) -> Self {
         let mut rows = Vec::with_capacity(height);
-        rows.resize(height, Horizontal::new(width));
+        rows.resize(height, Data1d::new(width));
         Self {
             rows,
         }
@@ -50,19 +50,14 @@ impl<T: DataType> Data2d<T> {
 }
 
 pub struct Data2dStatistics<T: DataType> {
-    data: Data2d<T>,
-    min: Option<T>,
-    max: Option<T>,
+    pub name: String,
+    pub data: Data2d<T>,
+    pub min: Option<T>,
+    pub max: Option<T>,
 }
 
 pub trait PixelMappable<T: DataType> {
     fn get_pixel_map(&self) -> Box<dyn Fn(&T) -> u8>;
-}
-
-impl<T: DataType> Data2dStatistics<T> {
-    pub fn new(data: Data2d<T>, min: Option<T>, max: Option<T>) -> Self {
-        Self { data, min, max }
-    }
 }
 
 impl PixelMappable<f64> for Data2dStatistics<f64> {
@@ -98,6 +93,7 @@ impl<T: DataType> Sub for &Data2dStatistics<T> where T: Sub<Output = T> {
         }
 
         Data2dStatistics {
+            name: format!("{} - {}", self.name, rhs.name),
             data: difference,
             min,
             max

@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use ghg::data_processing::data_model::{Data2dStatistics, DataType, ToImage, ToMetadata};
 use ghg::data_processing::read_data::{find_data_files};
 use ghg::data_processing::save_result::save_channels;
-use ghg::data_processing::file_type::{Nc4, DataFile};
+use ghg::data_processing::file_type::{Nc4, DataFile, CdfMetadata};
 
 use std::io::prelude::*;
 
@@ -36,12 +36,14 @@ fn main() -> std::io::Result<()> {
         assert_eq!(files.len(), 2);
         println!("Files: {files:?}");
 
+        let metadata = CdfMetadata{width_dimension: 2, height_dimension: 1};
+
         let (data_1980, data_2021, differences) = {
             let variables = ["TO3".to_owned()];
-            let mut data_1980 = Nc4::open(&files[0])
+            let mut data_1980 = Nc4::open(&files[0], metadata)
                 .expect(format!("Failed to read file {:?}", files[0].file_name().unwrap()).as_str())
                 .read_variables(&variables);
-            let mut data_2021 = Nc4::open(&files[1])
+            let mut data_2021 = Nc4::open(&files[1], metadata)
                 .expect(format!("Failed to read file {:?}", files[0].file_name().unwrap()).as_str())
                 .read_variables(&variables);
 
