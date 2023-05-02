@@ -1,90 +1,14 @@
-[package]
-name = "ghg"
-version = "0.1.0"
-authors = ["retascent <retascent@gmail.com>"]
-edition = "2021"
-repository = "https://github.com/retascent/ghg"
-license-file = "LICENSE_MIT"
-description = """GHG is an online data visualization tool for better connecting people with the reality of climate
-change data. This project uses Rust WASM and WebGL to provide the best performance and accessibility possible."""
-
-[[bin]]
-name = "debug_cdf_file"
-required-features = [
-    "read_netcdf",
+[workspace]
+members = [
+    "ghg",
+    "ghg-common",
+    "ghg-data-core",
+    "ghg-data-processing",
 ]
-
-[[bin]]
-name = "merra2_inst_2d_data_export"
-required-features = [
-    "read_netcdf",
-]
-
-[[bin]]
-name = "texture_splitter"
-
-[lib]
-name = "ghg"
-crate-type = ["cdylib", "rlib"]
-
-[features]
-default = ["console_error_panic_hook"]
-read_netcdf = ["hdf5-sys", "netcdf-src", "netcdf"] # Requires HDF5 to be installed, or build with `--features hdf5-sys/static,netcdf-src/static`
-
-[dependencies]
-clap = "4.1.6"
-image = "0.24.2"
-image-base64-wasm = "0.6.0"
-itertools = "0.10.3"
-js-sys = "0.3.57"
-memoffset = "0.8.0"
-nalgebra-glm = "0.18.0"
-paste = "1.0.7"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-wasm-bindgen = "0.2.80"
-wasm-bindgen-futures = "0.4.32"
-
-# The `console_error_panic_hook` crate provides better debugging of panics by
-# logging them with `console.error`. This is great for development, but requires
-# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
-# code size when deploying.
-console_error_panic_hook = { version = "0.1.6", optional = true }
-
-# Used by some data loader tools
-hdf5-sys = { version = "0.8.1", optional = true }
-netcdf-src = { version = "0.3.0", optional = true }
-netcdf = { version = "0.8.1", optional = true }
-png = { version = "0.17.5", optional = false }
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3.13"
-
-[dependencies.web-sys]
-version = "0.3.4"
-features = [
-    'Blob',
-    'Crypto',
-    'Document',
-    'Element',
-    'EventListener',
-    'HtmlCanvasElement',
-    'KeyboardEvent',
-    'MouseEvent',
-    'Performance',
-    'Response',
-    'Request',
-    'RequestInit',
-    'RequestMode',
-    'WebGlBuffer',
-    'WebGlVertexArrayObject',
-    'WebGl2RenderingContext',
-    'WebGlProgram',
-    'WebGlShader',
-    'WebGlTexture',
-    'WebGlUniformLocation',
-    'WheelEvent',
-    'Window',
+default-members = [
+    "ghg",
+    "ghg-common",
+    "ghg-data-core",
 ]
 
 [profile.release]

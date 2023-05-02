@@ -19,7 +19,7 @@ jobs:
         run: |
           tar \
             --dereference --hard-dereference \
-            --directory www/ \
+            --directory ghg/www/ \
             -cvf ${{ runner.temp }}/artifact.tar \
             --exclude=.git \
             --exclude=.github \

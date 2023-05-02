@@ -5,7 +5,7 @@ wasm-pack.log
 .fleet/
 **/*.rs.bk
 
-/target
+target/
 /pkg/
 *.exe
 
@@ -13,6 +13,6 @@ scripts/data
 
 ## DEPLOY_TAG
 # Everything below here is removed from the gitignore when deploying. Hacky, but effective
-www/wasm/
-www/images/earth_color/**/*.png
-www/images/earth_height/**/*.png
+ghg/www/wasm/
+ghg/www/images/earth_color/**/*.png
+ghg/www/images/earth_height/**/*.png

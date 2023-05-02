@@ -1,0 +1,69 @@
+[package]
+name = "ghg"
+version = "0.1.0"
+authors = ["retascent <retascent@gmail.com>"]
+edition = "2021"
+repository = "https://github.com/retascent/ghg"
+license-file = "LICENSE_MIT"
+description = """GHG is an online data visualization tool for better connecting people with the reality of climate
+change data. This project uses Rust WASM and WebGL to provide the best performance and accessibility possible."""
+
+[[bin]]
+name = "texture_splitter"
+
+[lib]
+name = "ghg"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+ghg-common = { path = "../ghg-common", version = "0.1.0" }
+ghg-data-core = { path = "../ghg-data-core", version = "0.1.0" }
+
+clap = "4.1.6"
+image = "0.24.2"
+image-base64-wasm = "0.6.0"
+itertools = "0.10.3"
+js-sys = "0.3.57"
+memoffset = "0.8.0"
+nalgebra-glm = "0.18.0"
+paste = "1.0.7"
+serde_json = "1.0"
+wasm-bindgen = "0.2.80"
+wasm-bindgen-futures = "0.4.32"
+
+console_error_panic_hook = { version = "0.1.6", optional = true }
+
+png = { version = "0.17.5", optional = false }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.13"
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+    'Blob',
+    'Crypto',
+    'Document',
+    'Element',
+    'EventListener',
+    'HtmlCanvasElement',
+    'KeyboardEvent',
+    'MouseEvent',
+    'Performance',
+    'Response',
+    'Request',
+    'RequestInit',
+    'RequestMode',
+    'WebGlBuffer',
+    'WebGlVertexArrayObject',
+    'WebGl2RenderingContext',
+    'WebGlProgram',
+    'WebGlShader',
+    'WebGlTexture',
+    'WebGlUniformLocation',
+    'WheelEvent',
+    'Window',
+]

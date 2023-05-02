@@ -22,7 +22,7 @@ jobs:
           version: 'latest'
 
       - name: Build WASM
-        run: wasm-pack build --target web --out-dir www/wasm
+        run: wasm-pack build --target web --out-dir ghg/www/wasm
 
       - name: Prepare Stage
         run: |
@@ -35,7 +35,7 @@ jobs:
         run: |
           echo "Replacing .gitignore"
           sed -i -n '/DEPLOY_TAG/q;p' .gitignore
-          rm www/wasm/.gitignore
+          rm ghg/www/wasm/.gitignore
           echo "Success"
 
       - name: Stage Artifacts
