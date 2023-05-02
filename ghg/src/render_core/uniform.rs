@@ -1,76 +1,81 @@
-use paste::paste;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use web_sys::{WebGl2RenderingContext, WebGlUniformLocation};
-use crate::application::shaders::ShaderContext;
 
+use paste::paste;
+use web_sys::{WebGl2RenderingContext, WebGlUniformLocation};
+
+use crate::application::shaders::ShaderContext;
 #[allow(unused_imports)]
 use crate::utils::prelude::*;
 
-/// This provides a simple wrapper type for writing to uniform values. Uniform<T> provides strongly-
-/// typed uniform values and a simple interface for writing the value to the GPU. SmartUniform<T> is
-/// an additional layer of "safety", which allows for writing parameters only when they have changed.
-/// This helps simplify the process of updating parameters during an animation loop, because you can
-/// simply call smart_write every time, and nothing will happen if the parameter hasn't changed.
+/// This provides a simple wrapper type for writing to uniform values.
+/// Uniform<T> provides strongly- typed uniform values and a simple interface
+/// for writing the value to the GPU. SmartUniform<T> is an additional layer of
+/// "safety", which allows for writing parameters only when they have changed.
+/// This helps simplify the process of updating parameters during an animation
+/// loop, because you can simply call smart_write every time, and nothing will
+/// happen if the parameter hasn't changed.
 ///
-/// Note, however, that these "smart" uniforms are currently independent of one another; creating
-/// multiple that point at the same uniform will cause problems. So it's not a complete solution yet.
-
+/// Note, however, that these "smart" uniforms are currently independent of one
+/// another; creating multiple that point at the same uniform will cause
+/// problems. So it's not a complete solution yet.
 #[derive(Clone, Debug)]
 #[allow(dead_code)] // name isn't used, but it is useful. TODO: Remove it if not debug
 pub struct Uniform<T: Debug> {
-    name: String,
-    context: WebGl2RenderingContext,
-    location: Option<WebGlUniformLocation>,
-    phantom_value: PhantomData<T>, // Strongly-typed Uniforms are important
+	name: String,
+	context: WebGl2RenderingContext,
+	location: Option<WebGlUniformLocation>,
+	phantom_value: PhantomData<T>, // Strongly-typed Uniforms are important
 }
 
 impl<T: Clone + Debug + PartialEq + UniformValue> Uniform<T> {
-    pub fn new(name: &str, shader_context: &ShaderContext) -> Self {
-        let location = shader_context.context.get_uniform_location(&shader_context.program, name);
-        Self {
-            context: shader_context.context.clone(),
-            name: name.to_owned(),
-            location,
-            phantom_value: PhantomData,
-        }
-    }
+	pub fn new(name: &str, shader_context: &ShaderContext) -> Self {
+		let location = shader_context.context.get_uniform_location(&shader_context.program, name);
+		Self {
+			context: shader_context.context.clone(),
+			name: name.to_owned(),
+			location,
+			phantom_value: PhantomData,
+		}
+	}
 
-    pub fn write_unchecked(&self, t: T) {
-        // let name = &self.name;
-        // ghg_log!("Writing uniform: {name} -> {t:?}");
-        t.write_to_program(&self.context, &self.location);
-    }
+	pub fn write_unchecked(&self, t: T) {
+		// let name = &self.name;
+		// ghg_log!("Writing uniform: {name} -> {t:?}");
+		t.write_to_program(&self.context, &self.location);
+	}
 }
 
 #[derive(Debug)]
 pub struct SmartUniform<T: Debug> {
-    uniform: Uniform<T>,
-    last_value: Option<T>,
+	uniform: Uniform<T>,
+	last_value: Option<T>,
 }
 
 impl<T: Clone + Debug + PartialEq + UniformValue> SmartUniform<T> {
-    pub fn new(name: &str, shader_context: &ShaderContext) -> Self {
-        Self {
-            uniform: Uniform::new(name, shader_context),
-            last_value: None,
-        }
-    }
+	pub fn new(name: &str, shader_context: &ShaderContext) -> Self {
+		Self { uniform: Uniform::new(name, shader_context), last_value: None }
+	}
 
-    // pub fn get_unchecked(&self) -> Uniform<T> {
-    //     self.uniform.clone()
-    // }
+	// pub fn get_unchecked(&self) -> Uniform<T> {
+	//     self.uniform.clone()
+	// }
 
-    pub fn smart_write(&mut self, t: T) {
-        if self.last_value.is_none() || &t != self.last_value.as_ref().unwrap() {
-            self.uniform.write_unchecked(t.clone());
-            self.last_value = Some(t);
-        }
-    }
+	pub fn smart_write(&mut self, t: T) {
+		if self.last_value.is_none() || &t != self.last_value.as_ref().unwrap() {
+			self.uniform.write_unchecked(t.clone());
+			self.last_value = Some(t);
+		}
+	}
 }
 
 pub trait UniformValue {
-    fn write_to_program(self, context: &WebGl2RenderingContext, location: &Option<WebGlUniformLocation>) where Self: Sized;
+	fn write_to_program(
+		self,
+		context: &WebGl2RenderingContext,
+		location: &Option<WebGlUniformLocation>,
+	) where
+		Self: Sized;
 }
 
 macro_rules! impl_uniform_creator_fns {
@@ -158,7 +163,6 @@ macro_rules! impl_uniform {
         impl_smart_uniform_creator_fns!($type_name, $short_name);
     };
 }
-
 
 impl_uniform!(i32, uniform1i);
 impl_uniform!(f32, uniform1f);

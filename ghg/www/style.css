@@ -29,7 +29,7 @@
     transition: opacity var(--fade-out) linear;
 
     display: flex;
-    justify-content:center;
+    justify-content: center;
 }
 
 #loading_overlay > span {

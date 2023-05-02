@@ -1,4 +1,3 @@
-
 // noinspection JSUnusedGlobalSymbols
 export function remove_overlay() {
     let overlay = document.getElementById('loading_overlay');

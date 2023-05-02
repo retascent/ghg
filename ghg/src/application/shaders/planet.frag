@@ -60,7 +60,7 @@ vec4 getTerrainColor() {
     return mix(fragColor, mappedColor, 0.99);
 
     // Grayscale based on depth:
-//    return mix(fragColor, vec4(terrainValue, terrainValue, terrainValue, 1.0), 0.93);
+    //    return mix(fragColor, vec4(terrainValue, terrainValue, terrainValue, 1.0), 0.93);
 }
 
 void main() {
@@ -68,8 +68,8 @@ void main() {
     vec3 norm = normalize(fragNormal);
 
     vec3 totalLightColor = getAmbientLight()
-            + getDiffuseLight(lightDir, norm)
-            + getSpecularLight(lightDir, norm);
+    + getDiffuseLight(lightDir, norm)
+    + getSpecularLight(lightDir, norm);
 
     vec4 terrainColor = getTerrainColor();
 

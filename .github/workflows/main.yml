@@ -22,7 +22,8 @@ jobs:
           version: 'latest'
 
       - name: Build WASM
-        run: wasm-pack build --target web --out-dir ghg/www/wasm
+        working-directory: ./ghg
+        run: wasm-pack build --target web --out-dir www/wasm
 
       - name: Prepare Stage
         run: |
