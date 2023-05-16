@@ -8,6 +8,7 @@ use ghg_data_processing::data_model::{Data2dStatistics, DataType, ToImage, ToMet
 use ghg_data_processing::file_type::{CdfMetadata, DataFile, Nc4};
 use ghg_data_processing::read_data::find_data_files;
 use ghg_data_processing::save_result::save_channels;
+use rayon::prelude::*;
 
 /// If you have a problem finding HDF5 or netCDF, make sure to run this with
 /// these flags:     --all-features --features hdf5-sys/static,netcdf/static
@@ -29,39 +30,67 @@ use ghg_data_processing::save_result::save_channels;
 // Single-Level Diagnostics
 
 fn main() -> std::io::Result<()> {
-	let output_root = Path::new("../ghg/www/images/earth_ozone");
+	let output_root = Path::new("ghg/www/images/earth_temp");
+	assert!(output_root.exists());
+
 	let data_source = Path::new("raw_data/merra2_1980_2021");
+	assert!(data_source.exists());
+
 	let data_paths = find_data_files(data_source, &[Nc4::<f64>::extension()]);
 
-	for month in 0..12 {
-		println!("Month {month}");
-		let files = paths_from_month(&data_paths, month);
-		assert_eq!(files.len(), 2);
-		println!("Files: {files:?}");
+	let metadata = CdfMetadata { width_dimension: 2, height_dimension: 1 };
+	let variables = ["T2M".to_owned()];
 
-		let metadata = CdfMetadata { width_dimension: 2, height_dimension: 1 };
+	for year in 1980..=2021 {
+		println!(">>> Starting year {year} <<<");
+		let year_files = paths_from_year(&data_paths, year);
+		println!("  Files: {year_files:?}");
 
-		let (data_1980, data_2021, differences) = {
-			let variables = ["TO3".to_owned()];
-			let mut data_1980 = Nc4::open(&files[0], metadata)
-				.expect(format!("Failed to read file {:?}", files[0].file_name().unwrap()).as_str())
-				.read_variables(&variables);
-			let mut data_2021 = Nc4::open(&files[1], metadata)
-				.expect(format!("Failed to read file {:?}", files[0].file_name().unwrap()).as_str())
-				.read_variables(&variables);
-
-			assert_eq!(data_1980.len(), 1);
-			assert_eq!(data_2021.len(), 1);
-
-			let differences = &data_2021[0] - &data_1980[0];
-			(data_1980.remove(0), data_2021.remove(0), differences)
-		};
-
-		let output_name = output_root.join(format!("2021-1980.{:0>2}.png", month + 1));
-		save_channels!(output_name, data_1980, data_2021, differences);
+		(0..3).into_iter().for_each(|month_stride| {
+			produce_stride_image(output_root, year, &year_files, metadata, &variables, month_stride)
+		});
 	}
 
 	Ok(())
+}
+
+fn produce_stride_image(
+	output_root: &Path,
+	year: i32,
+	year_files: &Vec<PathBuf>,
+	metadata: CdfMetadata,
+	variables: &[String],
+	month_stride: i32,
+) {
+	let mut stride_data: Vec<Data2dStatistics<f64>> = Vec::new();
+
+	const MONTH_STRIDE_LENGTH: i32 = 4;
+	for month_cursor in 0..MONTH_STRIDE_LENGTH {
+		let month = month_stride * MONTH_STRIDE_LENGTH + month_cursor;
+		println!("  Month: {}", month + 1);
+
+		let files = paths_from_month(year_files, month);
+		assert_eq!(files.len(), 1);
+
+		let mut data = Nc4::<f64>::open(&files[0], metadata)
+			.expect(format!("Failed to read file {:?}", files[0].file_name().unwrap()).as_str())
+			.read_variables(&variables);
+		assert_eq!(data.len(), 1);
+
+		stride_data.push(data.remove(0));
+	}
+	let output_name = output_root.join(format!(
+		"{:0>4}.{:0>2}.{:0>2}.png",
+		year,
+		month_stride * MONTH_STRIDE_LENGTH + 1,
+		month_stride * MONTH_STRIDE_LENGTH + MONTH_STRIDE_LENGTH
+	));
+	save_channels!(output_name, to_array::<Data2dStatistics<f64>, 4>(stride_data.clone()));
+}
+
+fn to_array<T, const N: usize>(v: Vec<T>) -> [T; N] {
+	v.try_into()
+		.unwrap_or_else(|v: Vec<T>| panic!("Expected a Vec of length {} but it was {}", N, v.len()))
 }
 
 fn paths_from_month(all_paths: &Vec<PathBuf>, month: i32) -> Vec<PathBuf> {
@@ -71,6 +100,18 @@ fn paths_from_month(all_paths: &Vec<PathBuf>, month: i32) -> Vec<PathBuf> {
 			let filename = p.file_stem().unwrap();
 			let name_str = filename.to_str().unwrap();
 			name_str.ends_with(format!("{:0>2}", month + 1).as_str())
+		})
+		.cloned()
+		.collect()
+}
+
+fn paths_from_year(all_paths: &Vec<PathBuf>, year: i32) -> Vec<PathBuf> {
+	all_paths
+		.iter()
+		.filter(|p| {
+			let filename = p.file_stem().unwrap();
+			let name_str = filename.to_str().unwrap();
+			name_str.contains(format!("Nx.{:0>4}", year).as_str())
 		})
 		.cloned()
 		.collect()

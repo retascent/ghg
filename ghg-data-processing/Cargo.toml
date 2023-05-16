@@ -15,8 +15,15 @@ required-features = [
     "read_netcdf",
 ]
 
+[[bin]]
+name = "web_downloader"
+required-features = [
+    "scrape_web",
+]
+
 [features]
 read_netcdf = ["hdf5-sys", "netcdf-src", "netcdf"] # Requires HDF5 to be installed, or build with `--features hdf5-sys/static,netcdf-src/static`
+scrape_web = ["scraper", "reqwest", "regex"]
 
 [dependencies]
 ghg-common = { path = "../ghg-common", version = "0.1.0" }
@@ -25,6 +32,12 @@ itertools = "0.10.3"
 serde = "1.0"
 serde_json = "1.0"
 image = "0.24.2"
+rayon = "1.7.0"
+
 hdf5-sys = { version = "0.8.1", optional = true }
 netcdf-src = { version = "0.3.0", optional = true }
 netcdf = { version = "0.8.1", optional = true }
+
+scraper = { version = "0.16.0", optional = true}
+reqwest = { version = "0.11", optional = true, features = ["blocking"] }
+regex = { version = "1", optional = true }
