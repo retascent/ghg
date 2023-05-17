@@ -2,7 +2,7 @@
 
 precision mediump float;
 
-#define M_PI 3.1415926535898
+#include <application/shaders/pointmapping.glsl>
 
 in vec3 fragPosition;
 in vec3 fragNormal;
@@ -22,12 +22,6 @@ uniform vec3 u_lightColor;
 
 uniform vec3 u_cameraPosition;
 uniform float u_specularStrength;
-
-vec2 pointToUv(vec3 pointOnSphere) {
-    float u = clamp(0.5 + atan(pointOnSphere.x, pointOnSphere.z) / 2.0 / M_PI, 0.0, 1.0);
-    float v = clamp(0.5 + asin(pointOnSphere.y) / M_PI, 0.0, 1.0);
-    return vec2(u, v);
-}
 
 vec3 getAmbientLight() {
     return u_ambientStrength * u_ambientColor;

@@ -25,13 +25,6 @@ vec2 pointToUv(vec3 pointOnSphere) {
     return vec2(u, v);
 }
 
-// vec3 coordinateToPoint(vec2 coordinate) {
-//     float y = sin(coordinate.x);
-//     float r = cos(coordinate.x);
-//     float x = sin(coordinate.y) * r;
-//     float z = -cos(coordinate.y) * r;
-//     return vec3(x, y, z);
-// }
 
 //bool isWater(vec2 texturePoint) {
 //    vec4 color = texture(s_colorMap, texturePoint);

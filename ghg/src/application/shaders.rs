@@ -17,13 +17,13 @@ impl ShaderContext {
 }
 
 pub fn get_planet_shaders(context: &WebGl2RenderingContext) -> Result<ShaderContext, String> {
-	let vert_shader = shader::compile_shader(
+	let vert_shader = shader::preprocess_and_compile_shader(
 		&context,
 		WebGl2RenderingContext::VERTEX_SHADER,
 		include_str!("shaders/planet.vert"),
 	)?;
 
-	let frag_shader = shader::compile_shader(
+	let frag_shader = shader::preprocess_and_compile_shader(
 		&context,
 		WebGl2RenderingContext::FRAGMENT_SHADER,
 		include_str!("shaders/planet.frag"),
@@ -34,13 +34,13 @@ pub fn get_planet_shaders(context: &WebGl2RenderingContext) -> Result<ShaderCont
 }
 
 pub fn get_data_shaders(context: &WebGl2RenderingContext) -> Result<ShaderContext, String> {
-	let vert_shader = shader::compile_shader(
+	let vert_shader = shader::preprocess_and_compile_shader(
 		&context,
 		WebGl2RenderingContext::VERTEX_SHADER,
 		include_str!("shaders/data.vert"),
 	)?;
 
-	let frag_shader = shader::compile_shader(
+	let frag_shader = shader::preprocess_and_compile_shader(
 		&context,
 		WebGl2RenderingContext::FRAGMENT_SHADER,
 		include_str!("shaders/data.frag"),

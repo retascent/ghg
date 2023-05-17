@@ -1,6 +1,6 @@
 #version 300 es
 
-#define M_PI 3.1415926535898
+#include <application/shaders/pointmapping.glsl>
 
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
@@ -23,13 +23,6 @@ uniform float u_dataScaleMultiplier;
 out vec3 fragPosition;
 out vec3 fragNormal;
 out vec4 fragColor;
-
-// TODO: Library shader
-vec2 pointToUv(vec3 pointOnSphere) {
-    float u = clamp(0.5 + atan(pointOnSphere.x, pointOnSphere.z) / 2.0 / M_PI, 0.0, 1.0);
-    float v = clamp(0.5 + asin(pointOnSphere.y) / M_PI, 0.0, 1.0);
-    return vec2(u, v);
-}
 
 // Re-maps the data from the texture using the metadata
 vec3 channelValues(vec2 texturePoint) {

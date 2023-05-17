@@ -30,6 +30,8 @@ js-sys = "0.3.57"
 memoffset = "0.8.0"
 nalgebra-glm = "0.18.0"
 paste = "1.0.7"
+phf = { version = "0.11", features = ["macros"] }
+regex = "1"
 serde_json = "1.0"
 wasm-bindgen = "0.2.80"
 wasm-bindgen-futures = "0.4.32"
