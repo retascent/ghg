@@ -11,9 +11,12 @@ pub async fn fetch_bytes(url: &str) -> Result<Vec<u8>, JsValue> {
 }
 
 pub async fn fetch_blob(url: &str) -> Result<Blob, JsValue> {
-	let resp_value = JsFuture::from(window().fetch_with_str(url)).await?;
-	assert!(resp_value.is_instance_of::<Response>());
-	let response: Response = resp_value.dyn_into().unwrap();
+	let response: Response = {
+		let resp_value = JsFuture::from(window().fetch_with_str(url)).await?;
+		assert!(resp_value.is_instance_of::<Response>());
+
+		resp_value.dyn_into().unwrap()
+	};
 
 	let blob = JsFuture::from(response.blob()?).await?;
 	assert!(blob.is_instance_of::<Blob>());

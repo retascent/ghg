@@ -1,4 +1,6 @@
+#![feature(async_closure)]
 #![feature(extern_types)]
+#![feature(future_join)]
 #![feature(trait_alias)]
 extern crate nalgebra_glm as nglm;
 

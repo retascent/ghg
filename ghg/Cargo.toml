@@ -21,20 +21,21 @@ default = ["console_error_panic_hook"]
 [dependencies]
 ghg-common = { path = "../ghg-common", version = "0.1.0" }
 ghg-data-core = { path = "../ghg-data-core", version = "0.1.0" }
+single-thread-executor = { path = "../single-thread-executor", version = "0.1.0" }
 
 clap = "4.1.6"
 image = "0.24.2"
 image-base64-wasm = "0.6.0"
 itertools = "0.10.3"
 js-sys = "0.3.57"
-memoffset = "0.8.0"
+memoffset = "0.9.0"
 nalgebra-glm = "0.18.0"
 paste = "1.0.7"
 phf = { version = "0.11", features = ["macros"] }
 regex = "1"
 serde_json = "1.0"
-wasm-bindgen = "0.2.80"
-wasm-bindgen-futures = "0.4.32"
+wasm-bindgen = "0.2.86"
+wasm-bindgen-futures = "0.4.36"
 
 console_error_panic_hook = { version = "0.1.6", optional = true }
 
@@ -69,3 +70,28 @@ features = [
     'WheelEvent',
     'Window',
 ]
+
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = ['-O']
+
+[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
+debug-js-glue = true
+demangle-name-section = true
+dwarf-debug-info = true
+
+[package.metadata.wasm-pack.profile.profiling]
+wasm-opt = ['-O', '-g']
+
+[package.metadata.wasm-pack.profile.profiling.wasm-bindgen]
+debug-js-glue = false
+demangle-name-section = true
+dwarf-debug-info = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ['-O4', '-g']  # TODO: -g seems to fix the name mangling problem
+
+[package.metadata.wasm-pack.profile.release.wasm-bindgen]
+debug-js-glue = false
+demangle-name-section = true
+dwarf-debug-info = false

@@ -4,6 +4,7 @@ use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
 
 use crate::render_core;
 
+#[derive(Clone)]
 pub struct Viewport {
 	canvas: HtmlCanvasElement,
 	context: WebGl2RenderingContext,

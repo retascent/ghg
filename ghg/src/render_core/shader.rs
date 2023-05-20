@@ -1,6 +1,5 @@
 use std::ops::Index;
 
-use clap::builder::Str;
 use phf::{phf_map, Map};
 use regex;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader};
@@ -137,7 +136,7 @@ mod tests {
 
 	#[test]
 	fn basic() {
-		let result = preprocess_shader(include_str!("../application/shaders/data.vert"));
+		let result = preprocess_shader(include_str!("../application/shaders/data_sphere.vert"));
 		println!("{}", result);
 	}
 

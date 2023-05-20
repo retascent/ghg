@@ -1,0 +1,17 @@
+[package]
+name = "single-thread-executor"
+version = "0.1.0"
+authors = ["retascent <retascent@gmail.com>"]
+edition = "2021"
+repository = "https://github.com/retascent/ghg"
+license-file = "LICENSE_MIT"
+
+[dependencies]
+async-channel = "1.8"
+futures = "0.3"
+js-sys = "0.3"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.13"

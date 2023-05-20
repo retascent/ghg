@@ -3,12 +3,17 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use web_sys::HtmlCanvasElement;
+use single_thread_executor::Spawner;
+use crate::application::frame_params::AnimationParams;
 
+use crate::application::shaders::ShaderContext;
 use crate::interaction_core::input_subscriber::{
 	FrameInputSubscriber, InputState, KeyState, MouseButton, MouseButtonState, MouseMovement,
 	Scroll, SwitchState,
 };
 use crate::render_core::camera::Camera;
+use crate::render_core::frame_sequencer::{FrameGate, FrameParams};
+use crate::render_core::uniform;
 use crate::render_core::uniform::Uniform;
 use crate::utils::prelude::*;
 
@@ -19,7 +24,7 @@ pub struct Controller {
 impl Controller {
 	pub fn new(
 		canvas: HtmlCanvasElement,
-		camera: &Rc<RefCell<Camera>>,
+		camera: Rc<RefCell<Camera>>,
 		terrain_scale: Uniform<f32>,
 	) -> Self {
 		let mut input_subscriber = FrameInputSubscriber::new(canvas);
@@ -98,4 +103,20 @@ impl Controller {
 	}
 
 	pub fn frame(&mut self) { self.input_subscriber.frame(); }
+}
+
+pub async fn controller_frame(
+	gate: FrameGate<AnimationParams>,
+	canvas: HtmlCanvasElement,
+	planet_shader: ShaderContext,
+	camera: Rc<RefCell<Camera>>,
+) {
+	let terrain_scale = uniform::init_f32("u_terrainScale", &planet_shader, 0.03);
+
+	let mut controller = Controller::new(canvas, camera, terrain_scale);
+
+	loop {
+		(&gate).await;
+		controller.frame();
+	}
 }
