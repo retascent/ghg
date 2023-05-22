@@ -34,12 +34,6 @@ pub struct InputBatcher {
 
 impl InputBatcher {
 	pub fn new(canvas: HtmlCanvasElement) -> Self {
-		// TODO: I think RefCell is totally reasonable here, but I need to
-		// improve it. It's only handed out to clients that will
-		// definitely be run on the same thread, in order. That's how
-		// the Javascript event loop works. But that's not exactly extensible,
-		// so it should probably use something more robust.
-
 		let current_state = Rc::new(RefCell::new(InputState::new()));
 		let mouse_move_handler = add_mouse_move_handler(&canvas, current_state.clone());
 		let mouse_button_handlers = add_mouse_button_handlers(&canvas, &current_state);

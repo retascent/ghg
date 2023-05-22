@@ -170,4 +170,7 @@ impl_uniform!(nglm::Vec3, vec3, uniform3f, self.x, self.y, self.z);
 impl_uniform!(nglm::Vec4, vec4, uniform4f, self.x, self.y, self.z, self.w);
 impl_uniform!(nglm::Mat4, mat4, uniform_matrix4fv_with_f32_array, just false, call self.as_slice());
 
+// TODO: Uh... This switches column/row. Is that expected?
+impl_uniform!(nglm::Mat4x3, mat4x3, uniform_matrix3x4fv_with_f32_array, just false, call self.as_slice());
+
 // TODO: Way more implementations

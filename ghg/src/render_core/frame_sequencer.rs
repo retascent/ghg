@@ -2,14 +2,48 @@ use std::borrow::Borrow;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::future::Future;
+use std::ops::Deref;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll, Waker};
 
 use crate::utils::prelude::*;
 
+pub trait FrameParams = Clone;
+
+/// This acts as the single-frame context. When this object is destroyed, it marks that the current
+/// task has reached the end of its frame, so it can be queued for the next one.
+///
+/// It provides automatic dereferencing to this frame's parameter values
 #[must_use]
-pub trait FrameParams: Clone {}
+pub struct FrameContext<T: FrameParams> {
+	current_params: T,
+	shared_params: Rc<RefCell<Option<T>>>,
+}
+
+impl<T: FrameParams> FrameContext<T> {
+	fn new(shared_params: Rc<RefCell<Option<T>>>) -> Self {
+		let cell: &RefCell<Option<T>> = shared_params.borrow();
+		let current_value = cell.borrow().clone();
+		let current_params =
+			current_value.expect("Unable to create ParamContext with empty params");
+		Self { current_params, shared_params }
+	}
+}
+
+impl<T: FrameParams> Deref for FrameContext<T> {
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target { &self.current_params }
+}
+
+impl<T: FrameParams> Drop for FrameContext<T> {
+	fn drop(&mut self) {
+		let cell: &RefCell<Option<T>> = self.shared_params.borrow();
+		assert!(cell.borrow().is_some());
+		cell.replace(None);
+	}
+}
 
 pub struct FrameSequencer<T: FrameParams> {
 	running_gates: RefCell<HashMap<usize, (Rc<RefCell<Option<T>>>, Option<Waker>)>>,
@@ -71,7 +105,7 @@ impl<T: FrameParams> FrameGate<T> {
 }
 
 impl<T: FrameParams> Future for &FrameGate<T> {
-	type Output = T;
+	type Output = FrameContext<T>;
 
 	fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
 		self.as_mut().frame_waker.replace(Some(cx.waker().clone()));
@@ -79,9 +113,9 @@ impl<T: FrameParams> Future for &FrameGate<T> {
 
 		let running_params: &RefCell<Option<T>> = self.params.borrow();
 		if running_params.borrow().is_some() {
-			let params = running_params.replace(None);
-			assert!(params.is_some());
-			Poll::Ready(params.unwrap())
+			// let params = running_params.replace(None);
+			// assert!(params.is_some());
+			Poll::Ready(FrameContext::new(self.params.clone()))
 		} else {
 			Poll::Pending
 		}

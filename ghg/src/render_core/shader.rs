@@ -65,6 +65,7 @@ pub fn link_program(
 }
 
 const INCLUDE_STRING_MATCH: &str = r#"#include <([a-zA-Z0-9\.\-\_/]+)>"#;
+#[allow(dead_code)]
 const LINE_COMMENT_MATCH: &str = r#"//"#;
 
 macro_rules! include_strs {
@@ -76,7 +77,12 @@ macro_rules! include_strs {
 }
 
 const PREPROCESSABLE_SHADERS: Map<&str, &str> =
-	include_strs!["application/shaders/pointmapping.glsl",];
+	include_strs![
+		"application/shaders/channels.glsl",
+		"application/shaders/color.glsl",
+		"application/shaders/pointmapping.glsl",
+		"application/shaders/math.glsl",
+	];
 
 fn load_shader(source_path: &str) -> &str {
 	PREPROCESSABLE_SHADERS
@@ -103,7 +109,7 @@ fn fill_includes(shader_source: &str) -> String {
 							include_line.end(),
 							include_line.as_str()
 						)
-							.as_str(),
+						.as_str(),
 					);
 					assert_eq!(captures.len(), 2);
 					captures.index(1).to_owned()
@@ -125,7 +131,7 @@ fn fill_includes(shader_source: &str) -> String {
 	filled_source
 }
 
-fn is_match_commented(regex_match: regex::Match, full_source: &str) -> bool {
+fn is_match_commented(_regex_match: regex::Match, _full_source: &str) -> bool {
 	// TODO
 	false
 }

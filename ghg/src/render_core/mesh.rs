@@ -47,6 +47,7 @@ pub struct DrawBuffers {
 	pub vertex_array_object: WebGlVertexArrayObject,
 	pub index_buffer: WebGlBuffer,
 
+	#[allow(dead_code)]
 	num_vertices: u32,
 	num_indices: u32,
 }

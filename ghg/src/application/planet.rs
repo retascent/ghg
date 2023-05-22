@@ -9,11 +9,11 @@ use single_thread_executor::Spawner;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
-use crate::application::frame_params::AnimationParams;
 use crate::application::lighting::LightParameters;
 use crate::application::shaders::ShaderContext;
 use crate::application::sphere::generate_sphere;
 use crate::application::vertex::BasicMesh;
+use crate::render_core::animation_params::AnimationParams;
 use crate::render_core::camera::Camera;
 use crate::render_core::frame_sequencer::FrameGate;
 use crate::render_core::image::load_into_texture;
@@ -21,7 +21,6 @@ use crate::render_core::mesh::{
 	add_mesh, clear_frame, draw_meshes, DrawBuffers, DrawMode, MeshMode,
 };
 use crate::render_core::uniform;
-use crate::render_core::viewport::Viewport;
 use crate::request_data::fetch_bytes;
 #[allow(unused_imports)]
 use crate::utils::prelude::*;
@@ -40,6 +39,9 @@ async fn load_planet_color(context: WebGl2RenderingContext) -> Result<(), JsValu
 async fn load_all_textures(context: WebGl2RenderingContext, done: Rc<Cell<bool>>) {
 	let (color_result, terrain_result) =
 		join!(load_planet_color(context.clone()), load_planet_terrain(context.clone()),).await;
+
+	assert!(color_result.is_ok(), "Color load failed");
+	assert!(terrain_result.is_ok(), "Terrain load failed");
 
 	remove_overlay();
 	done.replace(true);
@@ -113,7 +115,7 @@ pub async fn draw(
 
 	shader.use_shader();
 
-	let planet_meshes_and_buffers = generate_drawable_sphere(20, 20, shader.clone());
+	let planet_meshes_and_buffers = generate_drawable_sphere(10, 10, shader.clone());
 
 	let mut lighting = LightParameters::new(&shader);
 
@@ -140,7 +142,7 @@ pub async fn draw(
 
 		let camera_position = camera.deref().borrow().position();
 		lighting.camera_position.smart_write(camera_position.clone());
-		lighting.light_position.smart_write(camera_position - nglm::vec3(0.0, 0.5, 0.3));
+		lighting.light_position.smart_write(camera_position.clone()); // - nglm::vec3(0.0, 0.5, 0.3)
 
 		let width = params.viewport.width() as i32;
 		let height = params.viewport.height() as i32;

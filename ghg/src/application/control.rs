@@ -1,18 +1,17 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::ops::Deref;
 use std::rc::Rc;
 
 use web_sys::HtmlCanvasElement;
-use single_thread_executor::Spawner;
-use crate::application::frame_params::AnimationParams;
 
 use crate::application::shaders::ShaderContext;
 use crate::interaction_core::input_subscriber::{
 	FrameInputSubscriber, InputState, KeyState, MouseButton, MouseButtonState, MouseMovement,
 	Scroll, SwitchState,
 };
+use crate::render_core::animation_params::AnimationParams;
 use crate::render_core::camera::Camera;
-use crate::render_core::frame_sequencer::{FrameGate, FrameParams};
+use crate::render_core::frame_sequencer::FrameGate;
 use crate::render_core::uniform;
 use crate::render_core::uniform::Uniform;
 use crate::utils::prelude::*;
@@ -25,7 +24,9 @@ impl Controller {
 	pub fn new(
 		canvas: HtmlCanvasElement,
 		camera: Rc<RefCell<Camera>>,
+		planet_shader: ShaderContext,
 		terrain_scale: Uniform<f32>,
+		current_month: Rc<Cell<usize>>,
 	) -> Self {
 		let mut input_subscriber = FrameInputSubscriber::new(canvas);
 
@@ -50,6 +51,8 @@ impl Controller {
 			move |key_states: Vec<KeyState>, _current_state: InputState| {
 				let scale_max = 0.1f32;
 
+				planet_shader.use_shader();
+
 				key_states.iter().for_each(|k| match k {
 					KeyState { key, state: SwitchState::Pressed } => match key.as_str() {
 						"Digit1" => terrain_scale.write_unchecked(0.1 * scale_max),
@@ -58,6 +61,12 @@ impl Controller {
 						"Digit4" => terrain_scale.write_unchecked(0.7 * scale_max),
 						"Digit5" => terrain_scale.write_unchecked(0.9 * scale_max),
 						"Digit6" => terrain_scale.write_unchecked(1.5 * scale_max),
+						"ArrowRight" => {
+							current_month.replace((current_month.get() + 1) % 12);
+						}
+						"ArrowLeft" => {
+							current_month.replace(((current_month.get() - 1) + 12) % 12);
+						}
 						other => ghg_log!("{:?}", other),
 					},
 					_ => {}
@@ -110,13 +119,16 @@ pub async fn controller_frame(
 	canvas: HtmlCanvasElement,
 	planet_shader: ShaderContext,
 	camera: Rc<RefCell<Camera>>,
+	current_month: Rc<Cell<usize>>,
 ) {
+	planet_shader.use_shader();
 	let terrain_scale = uniform::init_f32("u_terrainScale", &planet_shader, 0.03);
 
-	let mut controller = Controller::new(canvas, camera, terrain_scale);
+	let mut controller =
+		Controller::new(canvas, camera, planet_shader.clone(), terrain_scale, current_month);
 
 	loop {
-		(&gate).await;
+		let _params = (&gate).await;
 		controller.frame();
 	}
 }

@@ -1,4 +1,5 @@
 pub mod animation;
+pub mod animation_params;
 pub mod camera;
 pub mod canvas;
 pub mod frame_sequencer;

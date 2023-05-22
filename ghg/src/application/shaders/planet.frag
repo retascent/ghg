@@ -2,7 +2,10 @@
 
 precision mediump float;
 
+#include <application/shaders/channels.glsl>
+#include <application/shaders/color.glsl>
 #include <application/shaders/pointmapping.glsl>
+#include <application/shaders/math.glsl>
 
 in vec3 fragPosition;
 in vec3 fragNormal;
@@ -22,6 +25,14 @@ uniform vec3 u_lightColor;
 
 uniform vec3 u_cameraPosition;
 uniform float u_specularStrength;
+
+// Data parameters
+const int NUM_MAPS_PER_YEAR = 3;
+const int NUM_CHANNELS_IN_MAP = 4;
+uniform int u_dataMonth;
+uniform sampler2D s_dataMap;
+uniform mat3x4 u_dataMinValues; // TOOD: float for year- or data-length min/max
+uniform mat3x4 u_dataMaxValues;
 
 vec3 getAmbientLight() {
     return u_ambientStrength * u_ambientColor;
@@ -57,6 +68,38 @@ vec4 getTerrainColor() {
     //    return mix(fragColor, vec4(terrainValue, terrainValue, terrainValue, 1.0), 0.93);
 }
 
+vec4 getDataColor() {
+    int mapIndex = u_dataMonth / NUM_MAPS_PER_YEAR;
+    int channelInMap = u_dataMonth % NUM_CHANNELS_IN_MAP;
+
+    vec4 minValues = u_dataMinValues[mapIndex];
+    vec4 maxValues = u_dataMaxValues[mapIndex];
+
+    vec2 texturePoint = pointToUv(normalize(fragPosition));
+    vec4 dataRealValue = channelValues(s_dataMap, texturePoint, minValues, maxValues);
+
+    vec4 dataRange = maxValues - minValues;
+
+    vec4 dataProportion = (dataRealValue - minValues) / dataRange;
+    float truncateColorSpace = 0.9;
+    vec4 truncatedProportion = (vec4(1.0) - dataProportion) * truncateColorSpace;
+
+    float channelValue = channelIndex(truncatedProportion, channelInMap);
+
+    vec3 withinColorSpace = hsl2rgb(vec3(channelValue, 1.0, 0.5));
+    return vec4(withinColorSpace, 1.0);
+
+    //    if (channelInMap == 0) {
+    //        return vec4(vec3(dataRealValue.r), 1.0);
+    //    } else if (channelInMap == 1) {
+    //        return vec4(vec3(dataRealValue.g), 1.0);
+    //    } else if (channelInMap == 2) {
+    //        return vec4(vec3(dataRealValue.b), 1.0);
+    //    } else { // if (channelInMap == 3) {
+    //        return vec4(vec3(dataRealValue.a), 1.0);
+    //    }
+}
+
 void main() {
     vec3 lightDir = normalize(u_lightPosition - fragPosition);
     vec3 norm = normalize(fragNormal);
@@ -66,6 +109,9 @@ void main() {
     + getSpecularLight(lightDir, norm);
 
     vec4 terrainColor = getTerrainColor();
+    vec4 dataColor = getDataColor();
 
-    outColor = terrainColor * vec4(totalLightColor, 1.0);
+    vec4 surfaceColor = mix(terrainColor, dataColor, 0.7);
+
+    outColor = surfaceColor * vec4(totalLightColor, 1.0);
 }

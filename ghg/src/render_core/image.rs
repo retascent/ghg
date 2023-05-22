@@ -1,4 +1,7 @@
-use image::{DynamicImage, EncodableLayout, GenericImageView, GrayImage, Luma, Rgb, RgbImage};
+use image::{
+	DynamicImage, EncodableLayout, GenericImageView, GrayImage, Luma, Rgb, RgbImage, Rgba,
+	RgbaImage,
+};
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
@@ -55,10 +58,44 @@ impl LoadableImageType for Rgb<u8> {
 	fn name() -> String { "Rgb8".to_owned() }
 }
 
+impl LoadableImageType for Rgba<u8> {
+	type ImageType = RgbaImage;
+
+	fn texture_internal_format() -> u32 { WebGl2RenderingContext::RGBA }
+
+	fn texture_format() -> u32 { WebGl2RenderingContext::RGBA }
+
+	fn texture_type() -> u32 { WebGl2RenderingContext::UNSIGNED_BYTE }
+
+	fn cast_to(dynamic: &DynamicImage) -> Option<&Self::ImageType> { dynamic.as_rgba8() }
+
+	fn copy_to(dynamic: &DynamicImage) -> Self::ImageType { dynamic.to_rgba8() }
+
+	fn raw(img: &Self::ImageType) -> &[u8] { img.as_bytes() }
+
+	fn name() -> String { "Rgba8".to_owned() }
+}
+
 pub fn load_into_texture<T: LoadableImageType>(
 	context: WebGl2RenderingContext,
 	png_bytes: &[u8],
 	texture_number: u32,
+) -> Result<(), JsValue> {
+	load_into_texture_with_filters::<T>(
+		context,
+		png_bytes,
+		texture_number,
+		WebGl2RenderingContext::LINEAR,
+		WebGl2RenderingContext::LINEAR,
+	)
+}
+
+pub fn load_into_texture_with_filters<T: LoadableImageType>(
+	context: WebGl2RenderingContext,
+	png_bytes: &[u8],
+	texture_number: u32,
+	min_filter: u32,
+	mag_filter: u32,
 ) -> Result<(), JsValue> {
 	let decoder = png::Decoder::new(png_bytes);
 	let mut reader = decoder.read_info().map_err(|s| s.to_string())?;
@@ -86,12 +123,12 @@ pub fn load_into_texture<T: LoadableImageType>(
 	context.tex_parameteri(
 		WebGl2RenderingContext::TEXTURE_2D,
 		WebGl2RenderingContext::TEXTURE_MIN_FILTER,
-		WebGl2RenderingContext::LINEAR as i32,
+		min_filter as i32,
 	);
 	context.tex_parameteri(
 		WebGl2RenderingContext::TEXTURE_2D,
 		WebGl2RenderingContext::TEXTURE_MAG_FILTER,
-		WebGl2RenderingContext::LINEAR as i32,
+		mag_filter as i32,
 	);
 
 	context.tex_parameteri(

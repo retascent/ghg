@@ -73,7 +73,7 @@ features = [
 
 
 [package.metadata.wasm-pack.profile.dev]
-wasm-opt = ['-O']
+wasm-opt = false
 
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 debug-js-glue = true
