@@ -11,9 +11,7 @@ use crate::Viewport;
 
 pub type AnimationFn = Box<dyn FnMut(AnimationParams)>;
 
-pub fn wrap_animation_body<F: 'static + FnMut(AnimationParams)>(f: F) -> AnimationFn {
-	Box::new(f)
-}
+pub fn wrap_animation_body<F: 'static + FnMut(AnimationParams)>(f: F) -> AnimationFn { Box::new(f) }
 
 fn window() -> web_sys::Window { web_sys::window().expect("no global `window` exists") }
 

@@ -76,13 +76,12 @@ macro_rules! include_strs {
 	};
 }
 
-const PREPROCESSABLE_SHADERS: Map<&str, &str> =
-	include_strs![
-		"application/shaders/channels.glsl",
-		"application/shaders/color.glsl",
-		"application/shaders/pointmapping.glsl",
-		"application/shaders/math.glsl",
-	];
+const PREPROCESSABLE_SHADERS: Map<&str, &str> = include_strs![
+	"application/shaders/channels.glsl",
+	"application/shaders/color.glsl",
+	"application/shaders/pointmapping.glsl",
+	"application/shaders/math.glsl",
+];
 
 fn load_shader(source_path: &str) -> &str {
 	PREPROCESSABLE_SHADERS

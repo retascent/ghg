@@ -11,8 +11,9 @@ use crate::utils::prelude::*;
 
 pub trait FrameParams = Clone;
 
-/// This acts as the single-frame context. When this object is destroyed, it marks that the current
-/// task has reached the end of its frame, so it can be queued for the next one.
+/// This acts as the single-frame context. When this object is destroyed, it
+/// marks that the current task has reached the end of its frame, so it can be
+/// queued for the next one.
 ///
 /// It provides automatic dereferencing to this frame's parameter values
 #[must_use]

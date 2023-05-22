@@ -6,11 +6,11 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
 
 use crate::application::control::controller_frame;
-use crate::application::{data, planet};
 // use crate::application::data::load_temp_data;
 use crate::application::shaders::get_planet_shaders;
-use crate::render_core::animation_params::AnimationParams;
+use crate::application::{data, planet};
 use crate::render_core::animation::{wrap_animation_body, AnimationFn};
+use crate::render_core::animation_params::AnimationParams;
 use crate::render_core::camera::Camera;
 use crate::render_core::frame_sequencer::{FrameGate, FrameMarker, FrameSequencer};
 use crate::utils::prelude::*;

@@ -64,16 +64,6 @@ async fn load_temp_data(
 	)?;
 
 	Ok(metadata)
-	// let (min_vals, max_vals): (nglm::Vec4, nglm::Vec4) =
-	// metadata.clone().try_into()?; // TODO: Wasteful clone
-
-	// Ok(DataMapping {
-	// 	metadata: metadata.clone(),
-	// 	texture_uniform: uniform::init_smart_i32("s_dataMap", &shader_context,
-	// texture_index), 	min_uniforms: uniform::init_smart_vec4("u_dataMinValues",
-	// &shader_context, min_vals), 	max_uniforms:
-	// uniform::init_smart_vec4("u_dataMaxValues", &shader_context, max_vals),
-	// })
 }
 
 pub async fn handle_data(
@@ -113,14 +103,9 @@ pub async fn handle_data(
 	let mut texture_uniform = uniform::new_smart_i32("s_dataMap", &shader_context);
 	let mut data_month_uniform = uniform::new_smart_i32("u_dataMonth", &shader_context);
 
-	// const MONTH_DURATION: f32 = 1.0; // seconds
-	// let mut month_counter: f32 = 0.0;
-
 	loop {
 		let _params = (&gate).await;
 
-		// month_counter = (month_counter + params.delta_time.as_secs_f32()) % 12.0;
-		// let current_month = (month_counter / MONTH_DURATION).floor() as i32;
 		let current_month = current_month.get() as i32;
 		let current_map_index = current_month / NUM_CHANNELS;
 
