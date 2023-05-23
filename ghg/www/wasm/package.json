@@ -1,0 +1,23 @@
+{
+  "name": "ghg",
+  "collaborators": [
+    "retascent <retascent@gmail.com>"
+  ],
+  "description": "GHG is an online data visualization tool for better connecting people with the reality of climate\nchange data. This project uses Rust WASM and WebGL to provide the best performance and accessibility possible.",
+  "version": "0.1.0",
+  "license": "SEE LICENSE IN LICENSE_MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/retascent/ghg"
+  },
+  "files": [
+    "ghg_bg.wasm",
+    "ghg.js",
+    "ghg.d.ts"
+  ],
+  "module": "ghg.js",
+  "types": "ghg.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

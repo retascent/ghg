@@ -11,8 +11,3 @@ target/
 
 scripts/data
 
-## DEPLOY_TAG
-# Everything below here is removed from the gitignore when deploying. Hacky, but effective
-ghg/www/wasm/
-ghg/www/images/earth_color/**/*.png
-ghg/www/images/earth_height/**/*.png
