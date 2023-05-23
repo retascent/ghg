@@ -100,9 +100,23 @@ impl Scroll {
 pub type LogicalCursorPosition = nglm::I32Vec2;
 
 #[derive(Clone, Debug)]
+pub struct LogicalTouchPosition {
+	pub identifier: i32,
+	pub position: LogicalCursorPosition,
+}
+
+#[derive(Clone, Debug)]
+pub struct TouchState {
+	pub identifier: i32,
+	pub state: SwitchState,
+}
+
+#[derive(Clone, Debug)]
 pub enum UserInput<T: Clone> {
 	Keyboard(KeyCodeState<T>),
 	MouseButton(MouseButtonState),
-	MousePosition(LogicalCursorPosition),
+	CursorPosition(LogicalCursorPosition),
 	Scroll(Scroll),
+	TouchPosition(LogicalTouchPosition),
+	Touch(TouchState),
 }

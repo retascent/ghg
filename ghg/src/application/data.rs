@@ -109,12 +109,6 @@ pub async fn handle_data(
 		let current_month = current_month.get() as i32;
 		let current_map_index = current_month / NUM_CHANNELS;
 
-		ghg_log!(
-			"Month: {}, map index: {}",
-			MONTH_NAMES[current_month as usize],
-			first_map_index + current_map_index
-		);
-
 		texture_uniform.smart_write(first_map_index + current_map_index);
 		data_month_uniform.smart_write(current_month);
 	}

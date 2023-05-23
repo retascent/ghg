@@ -1,14 +1,14 @@
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::rc::Rc;
 
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlCanvasElement, KeyboardEvent, MouseEvent, WheelEvent};
+use web_sys::{HtmlCanvasElement, KeyboardEvent, MouseEvent, TouchEvent, WheelEvent};
 
 use crate::interaction_core::user_inputs::{
-	KeyCodeState, LogicalCursorPosition, MouseButton, MouseButtonState, Scroll, SwitchState,
-	UserInput,
+	KeyCodeState, LogicalCursorPosition, LogicalTouchPosition, MouseButton, MouseButtonState,
+	Scroll, SwitchState, TouchState, UserInput,
 };
 use crate::utils::prelude::*;
 
@@ -30,6 +30,8 @@ pub struct InputBatcher {
 	mouse_button_handlers: MouseButtonHandlers,
 	mouse_scroll_handler: MouseScrollHandler,
 	keyboard_handlers: KeyboardEventHandlers,
+	touch_position_handler: TouchPositionHandler,
+	touch_state_handlers: TouchStateHandlers,
 }
 
 impl InputBatcher {
@@ -39,6 +41,8 @@ impl InputBatcher {
 		let mouse_button_handlers = add_mouse_button_handlers(&canvas, &current_state);
 		let mouse_scroll_handler = add_mouse_scroll_handler(&canvas, current_state.clone());
 		let keyboard_handlers = add_keyboard_handlers(&canvas, &current_state);
+		let touch_position_handler = add_touch_position_handler(&canvas, current_state.clone());
+		let touch_state_handlers = add_touch_state_handlers(&canvas, &current_state);
 
 		Self {
 			current_state,
@@ -47,6 +51,8 @@ impl InputBatcher {
 			mouse_button_handlers,
 			mouse_scroll_handler,
 			keyboard_handlers,
+			touch_position_handler,
+			touch_state_handlers,
 		}
 	}
 
@@ -83,6 +89,14 @@ impl<'a> BatchedInputHandler<'a> {
 	pub fn get_scroll_changes(&self) -> Option<Scroll> {
 		self.input_batcher.current_state.borrow().unhandled_changes.scroll_changes.clone()
 	}
+
+	pub fn get_touch_state_changes(&self) -> HashMap<i32, TouchState> {
+		self.input_batcher.current_state.borrow().unhandled_changes.touch_state_changes.clone()
+	}
+
+	pub fn get_touch_movement(&self) -> HashMap<i32, TouchMovement> {
+		self.input_batcher.current_state.borrow().unhandled_changes.touch_movement.clone()
+	}
 }
 
 impl Drop for BatchedInputHandler<'_> {
@@ -93,12 +107,14 @@ impl Drop for BatchedInputHandler<'_> {
 pub enum ActiveInput {
 	Keyboard(KeyCode),
 	MouseButton(MouseButton),
+	Touch(i32),
 }
 
 #[derive(Clone, Debug)]
 pub struct InputState {
 	current_set: HashSet<ActiveInput>,
 	mouse_position: Option<LogicalCursorPosition>,
+	touch_position: HashMap<i32, LogicalCursorPosition>,
 	unhandled_changes: FrameDifferences,
 }
 
@@ -107,6 +123,7 @@ impl InputState {
 		Self {
 			current_set: Default::default(),
 			mouse_position: None,
+			touch_position: Default::default(),
 			unhandled_changes: FrameDifferences::default(),
 		}
 	}
@@ -121,6 +138,20 @@ impl InputState {
 
 	#[allow(dead_code)]
 	pub fn current_mouse_location(&self) -> Option<LogicalCursorPosition> { self.mouse_position }
+
+	pub fn active_touch_identifiers(&self) -> Vec<i32> {
+		self.current_set.iter().filter_map(|input| {
+			match input {
+				ActiveInput::Touch(i) => Some(*i),
+				_ => None,
+			}
+		}).collect()
+	}
+
+	pub fn current_touch_position(&self, identifier: i32) -> Option<LogicalCursorPosition> {
+		self.touch_position.get(&identifier).cloned()
+	}
+
 }
 
 type KeyCode = String;
@@ -129,6 +160,7 @@ type MouseEventHandler = Closure<dyn FnMut(MouseEvent)>;
 type MouseButtonHandler = Closure<dyn FnMut(MouseEvent)>;
 type MouseScrollHandler = Closure<dyn FnMut(WheelEvent)>;
 type KeyboardEventHandler = Closure<dyn FnMut(KeyboardEvent)>;
+type TouchEventHandler = Closure<dyn FnMut(TouchEvent)>;
 
 #[allow(dead_code)]
 struct MouseButtonHandlers {
@@ -142,6 +174,14 @@ struct KeyboardEventHandlers {
 	up: KeyboardEventHandler,
 }
 
+type TouchPositionHandler = TouchEventHandler;
+
+struct TouchStateHandlers {
+	touch_start: TouchEventHandler,
+	touch_end: TouchEventHandler,
+	touch_cancel: TouchEventHandler,
+}
+
 trait IncorporateState
 where
 	Self: Clone,
@@ -152,11 +192,19 @@ where
 pub type MouseMovement = LogicalCursorPosition;
 
 #[derive(Clone, Debug, Default)]
+pub struct TouchMovement {
+	pub identifier: i32,
+	pub difference: LogicalCursorPosition,
+}
+
+#[derive(Clone, Debug, Default)]
 struct FrameDifferences {
 	keyboard_changes: Vec<KeyState>,
 	mouse_button_changes: Vec<MouseButtonState>,
 	mouse_movement: Option<MouseMovement>,
 	scroll_changes: Option<Scroll>,
+	touch_movement: HashMap<i32, TouchMovement>,
+	touch_state_changes: HashMap<i32, TouchState>,
 }
 
 impl FrameDifferences {
@@ -165,6 +213,8 @@ impl FrameDifferences {
 		self.mouse_button_changes.clear();
 		self.mouse_movement = None;
 		self.scroll_changes = None;
+		self.touch_movement.clear();
+		self.touch_state_changes.clear();
 	}
 }
 
@@ -210,7 +260,7 @@ impl IncorporateState for InputState {
 						.push(MouseButtonState { button, state: SwitchState::Released });
 				}
 			}
-			UserInput::MousePosition(new_position) => {
+			UserInput::CursorPosition(new_position) => {
 				let previous_position = new_state.mouse_position;
 
 				new_state.mouse_position = Some(new_position.clone());
@@ -220,8 +270,45 @@ impl IncorporateState for InputState {
 						Some(new_position - previous_position.unwrap());
 				}
 			}
+			UserInput::TouchPosition(LogicalTouchPosition { identifier, position }) => {
+				let previous_position = new_state.touch_position.get(&identifier).cloned();
+
+				new_state.touch_position.insert(identifier, position.clone());
+
+				if previous_position.is_some() {
+					let difference = position - previous_position.unwrap();
+					new_state
+						.unhandled_changes
+						.touch_movement
+						.insert(identifier, TouchMovement { identifier, difference });
+				}
+			}
 			UserInput::Scroll(scroll) => {
 				new_state.unhandled_changes.scroll_changes = Some(scroll);
+			}
+			UserInput::Touch(TouchState { identifier, state: SwitchState::Pressed }) => {
+				let is_new = new_state.current_set.insert(ActiveInput::Touch(identifier));
+				if is_new {
+					new_state
+						.unhandled_changes
+						.touch_state_changes
+						.insert(identifier, TouchState { identifier, state: SwitchState::Pressed });
+				}
+			}
+			UserInput::Touch(TouchState { identifier, state: SwitchState::Released }) => {
+				let was_removed = new_state.current_set.remove(&ActiveInput::Touch(identifier));
+				if was_removed {
+					new_state.unhandled_changes.touch_state_changes.insert(
+						identifier,
+						TouchState { identifier, state: SwitchState::Released },
+					);
+
+					// Don't store the old position, since this ID is no longer touching
+					if let None = new_state.touch_position.remove(&identifier) {
+						ghg_log!("Error removing touch position {identifier} from state!");
+					}
+
+				}
 			}
 			// UserInput::FocusChange(is_focused) => {
 			//     ghg_log!("Focus changed: is_focused = {}", is_focused);
@@ -242,7 +329,8 @@ fn add_mouse_move_handler(
 	current_state: Rc<RefCell<InputState>>,
 ) -> MouseEventHandler {
 	let mouse_move_event_handler = Closure::wrap(Box::new(move |e: MouseEvent| {
-		let new_state = UserInput::<KeyCode>::MousePosition(nglm::vec2(e.screen_x(), e.screen_y()));
+		let new_state =
+			UserInput::<KeyCode>::CursorPosition(nglm::vec2(e.screen_x(), e.screen_y()));
 
 		current_state.replace_with(move |previous| previous.incorporate(new_state));
 	}) as Box<dyn FnMut(MouseEvent)>);
@@ -329,6 +417,69 @@ fn make_key_handler(
 			current_state.replace_with(move |previous| previous.incorporate(new_state));
 		}
 	}) as Box<dyn FnMut(KeyboardEvent)>)
+}
+
+fn add_touch_position_handler(
+	canvas: &HtmlCanvasElement,
+	current_state: Rc<RefCell<InputState>>,
+) -> TouchPositionHandler {
+	let handler = Closure::wrap(Box::new(move |e: TouchEvent| {
+		e.prevent_default();
+
+		let touches = e.changed_touches();
+		for i in 0..touches.length() {
+			let touch = touches.get(i).expect(format!("Invalid touch index {i}").as_str());
+			let position = nglm::vec2(touch.screen_x(), touch.screen_y());
+			let new_state = UserInput::<KeyCode>::TouchPosition(LogicalTouchPosition {
+				identifier: touch.identifier(),
+				position,
+			});
+			current_state.replace_with(move |previous| previous.incorporate(new_state));
+		}
+	}) as Box<dyn FnMut(TouchEvent)>);
+
+	canvas.set_ontouchmove(Some(handler.as_ref().unchecked_ref()));
+
+	handler
+}
+
+fn add_touch_state_handlers(
+	canvas: &HtmlCanvasElement,
+	current_state: &Rc<RefCell<InputState>>,
+) -> TouchStateHandlers {
+	let touch_start_handler = make_touch_state_handler(current_state.clone(), SwitchState::Pressed);
+	let touch_end_handler = make_touch_state_handler(current_state.clone(), SwitchState::Released);
+	let touch_cancel_handler =
+		make_touch_state_handler(current_state.clone(), SwitchState::Released);
+
+	canvas.set_ontouchstart(Some(touch_start_handler.as_ref().unchecked_ref()));
+	canvas.set_ontouchend(Some(touch_end_handler.as_ref().unchecked_ref()));
+	canvas.set_ontouchcancel(Some(touch_cancel_handler.as_ref().unchecked_ref()));
+
+	TouchStateHandlers {
+		touch_start: touch_start_handler,
+		touch_end: touch_end_handler,
+		touch_cancel: touch_cancel_handler,
+	}
+}
+
+fn make_touch_state_handler(
+	current_state: Rc<RefCell<InputState>>,
+	switch_state: SwitchState,
+) -> TouchEventHandler {
+	Closure::wrap(Box::new(move |e: TouchEvent| {
+		e.prevent_default();
+
+		let touches = e.changed_touches();
+		for i in 0..touches.length() {
+			let touch = touches.get(i).expect(format!("Invalid touch index {i}").as_str());
+			let new_state = UserInput::<KeyCode>::Touch(TouchState {
+				identifier: touch.identifier(),
+				state: switch_state,
+			});
+			current_state.replace_with(move |previous| previous.incorporate(new_state));
+		}
+	}) as Box<dyn FnMut(TouchEvent)>)
 }
 
 // For debug only

@@ -5,8 +5,8 @@ use std::mem::transmute;
 use web_sys::HtmlCanvasElement;
 
 /// Types passed into callbacks
-pub use super::input_batch::{InputState, KeyState, MouseMovement};
-pub use super::user_inputs::{MouseButton, MouseButtonState, Scroll, SwitchState};
+pub use super::input_batch::{InputState, KeyState, MouseMovement, TouchMovement};
+pub use super::user_inputs::{MouseButton, MouseButtonState, Scroll, SwitchState, TouchState};
 use crate::interaction_core::input_batch::{BatchedInputHandler, InputBatcher};
 
 /// Used to remove a callback after it's unneeded.
@@ -24,6 +24,12 @@ pub type MouseButtonCallback = Box<dyn Fn(Vec<MouseButtonState>, InputState)>;
 /// Function to be executed when a scroll event occurs.
 pub type ScrollCallback = Box<dyn Fn(Scroll, InputState)>;
 
+/// Function to be executed when a touch movement occurs.
+pub type TouchMoveCallback = Box<dyn Fn(HashMap<i32, TouchMovement>, InputState)>;
+
+/// Function to be executed when a touch state change occurs.
+pub type TouchStateCallback = Box<dyn Fn(HashMap<i32, TouchState>, InputState)>;
+
 /// Provides a per-frame handler for user input registration.
 /// Subscribe to the different types of inputs using callbacks, then use frame()
 /// at the start of a frame to handle all of the available inputs, call the
@@ -35,6 +41,8 @@ pub struct FrameInputSubscriber {
 	mouse_move_callbacks: HashMap<Handle, MouseMoveCallback>,
 	mouse_button_callbacks: HashMap<Handle, MouseButtonCallback>,
 	scroll_callbacks: HashMap<Handle, ScrollCallback>,
+	touch_move_callbacks: HashMap<Handle, TouchMoveCallback>,
+	touch_state_callbacks: HashMap<Handle, TouchStateCallback>,
 }
 
 impl FrameInputSubscriber {
@@ -45,6 +53,8 @@ impl FrameInputSubscriber {
 			mouse_move_callbacks: Default::default(),
 			mouse_button_callbacks: Default::default(),
 			scroll_callbacks: Default::default(),
+			touch_move_callbacks: Default::default(),
+			touch_state_callbacks: Default::default(),
 		}
 	}
 
@@ -105,11 +115,38 @@ impl FrameInputSubscriber {
 		self.scroll_callbacks.remove(&handle)
 	}
 
+	pub fn subscribe_on_touch_move(&mut self, callback: TouchMoveCallback) -> Handle {
+		let handle = self.generate_unique_handle();
+		self.touch_move_callbacks.insert(handle, callback);
+		handle
+	}
+
+	#[allow(dead_code)]
+	pub fn unsubscribe_on_touch_move(&mut self, handle: Handle) -> Option<TouchMoveCallback> {
+		self.touch_move_callbacks.remove(&handle)
+	}
+
+	pub fn subscribe_on_touch_state_event(&mut self, callback: TouchStateCallback) -> Handle {
+		let handle = self.generate_unique_handle();
+		self.touch_state_callbacks.insert(handle, callback);
+		handle
+	}
+
+	#[allow(dead_code)]
+	pub fn unsubscribe_on_touch_state_event(
+		&mut self,
+		handle: Handle,
+	) -> Option<TouchStateCallback> {
+		self.touch_state_callbacks.remove(&handle)
+	}
+
 	/// Executes callbacks in this order, if any changes have occurred for each:
 	///  - Keyboard
 	///  - Mouse button
+	///  - Touch state
 	///  - Scroll
 	///  - Mouse movement
+	///  - Touch movement
 	/// Thus, all callbacks are guaranteed to have non-empty values when called.
 	pub fn frame(&mut self) {
 		let current_state = self.get_current_state();
@@ -129,6 +166,13 @@ impl FrameInputSubscriber {
 			});
 		}
 
+		let touch_state_changes = input_handler.get_touch_state_changes();
+		if !touch_state_changes.is_empty() {
+			self.touch_state_callbacks.iter().for_each(|(_handle, cb)| {
+				cb(touch_state_changes.clone(), current_state.clone());
+			});
+		}
+
 		let scroll_changes = input_handler.get_scroll_changes();
 		if scroll_changes.is_some() {
 			let scroll = scroll_changes.unwrap();
@@ -142,6 +186,13 @@ impl FrameInputSubscriber {
 			let movement = mouse_changes.unwrap();
 			self.mouse_move_callbacks.iter().for_each(|(_handle, cb)| {
 				cb(movement.clone(), current_state.clone());
+			});
+		}
+
+		let touch_move_changes = input_handler.get_touch_movement();
+		if !touch_move_changes.is_empty() {
+			self.touch_move_callbacks.iter().for_each(|(_handle, cb)| {
+				cb(touch_move_changes.clone(), current_state.clone());
 			});
 		}
 	}
